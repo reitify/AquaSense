@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import tempfile
 from datetime import datetime, timedelta
 from datetime import timezone
 
@@ -1098,6 +1099,16 @@ def test_app_factory_can_skip_schema_creation_for_serverless_runtime():
 
     with app.app_context():
         assert db.inspect(db.engine).get_table_names() == []
+
+
+def test_vercel_instance_path_uses_writable_temp_directory(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+
+    app = create_app()
+
+    assert app.instance_path == os.path.join(
+        tempfile.gettempdir(), "aquasense-instance"
+    )
 
 
 def test_chat_uses_exact_local_calculation_for_average_even_with_ai_available(monkeypatch):

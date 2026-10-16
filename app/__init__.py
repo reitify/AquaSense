@@ -43,7 +43,13 @@ def _ensure_default_admin_user():
 
 
 def create_app(config_class=Config):
-    app = Flask(__name__)
+    if os.getenv("VERCEL"):
+        app = Flask(
+            __name__,
+            instance_path=os.path.join(tempfile.gettempdir(), "aquasense-instance"),
+        )
+    else:
+        app = Flask(__name__)
     app.config.from_object(config_class)
 
     if os.getenv("PYTEST_CURRENT_TEST"):
