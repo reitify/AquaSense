@@ -149,6 +149,8 @@ Configure its model and endpoint with `OLLAMA_MODEL` and `OLLAMA_BASE_URL`.
    copies `app/static` assets into `public/static` for Vercel's static serving.
 5. Deploy and test sign-in, readings, reports, and alert updates. Create user
    accounts before sharing; AquaSense does not currently expose public signup.
+   `GET /api/ingestion/health` checks that the application can connect to its
+   database and reports `database: connected` when that check succeeds.
 
 The database-backed pages and exact local-data chat answers can run on Vercel.
 Qwen/Ollama currently runs only on the same machine as the app and is restricted

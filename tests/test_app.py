@@ -36,6 +36,19 @@ def test_create_app_registers_routes():
     assert response.status_code == 200
 
 
+def test_ingestion_health_checks_database_connection():
+    app = create_app()
+
+    response = app.test_client().get("/api/ingestion/health")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "success": True,
+        "service": "AquaSense ingestion",
+        "database": "connected",
+    }
+
+
 def test_sensor_formatter_decodes_scaled_values_and_trends():
     assert format_sensor_value("ph_value", 725) == "7.25"
     assert format_sensor_value("temperature_c", 2846) == "28.46 °C"

@@ -24,8 +24,17 @@ class Config:
         "SQLALCHEMY_DATABASE_URI"
     )
 
+    if IS_VERCEL and not DATABASE_URL:
+        raise RuntimeError(
+            "Set DATABASE_URL to the Supabase PostgreSQL transaction-pooler URL."
+        )
+
     if DATABASE_URL:
         database_url = make_url(DATABASE_URL)
+        if IS_VERCEL and not database_url.drivername.startswith("postgres"):
+            raise RuntimeError(
+                "DATABASE_URL must use Supabase PostgreSQL on Vercel."
+            )
         if database_url.drivername in {"postgres", "postgresql"}:
             query = dict(database_url.query)
             query.setdefault("sslmode", "require")

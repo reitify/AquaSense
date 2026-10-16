@@ -2,7 +2,8 @@
 from datetime import datetime, timezone
 from math import isfinite
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import csrf, db
 from app.models.reading import Reading
@@ -166,10 +167,21 @@ def _fill_derived_measurements(values, device_id, river_id, recorded_at):
 
 @ingestion_bp.route("/health", methods=["GET"])
 def health():
-    """Check whether the ingestion endpoint is available."""
+    """Check whether the ingestion endpoint and its database are available."""
+    try:
+        db.session.execute(db.text("SELECT 1"))
+    except SQLAlchemyError:
+        current_app.logger.exception("Ingestion health check could not reach the database.")
+        return jsonify({
+            "success": False,
+            "service": "AquaSense ingestion",
+            "database": "unavailable",
+        }), 503
+
     return jsonify({
         "success": True,
         "service": "AquaSense ingestion",
+        "database": "connected",
     }), 200
 
 
