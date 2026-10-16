@@ -108,8 +108,16 @@ Configure its model and endpoint with `OLLAMA_MODEL` and `OLLAMA_BASE_URL`.
    **Transaction pooler** connection string (port `6543`) for Vercel. Keep the
    connection string private and percent-encode reserved characters in its
    password.
-2. Initialize the Supabase schema from a trusted local machine. Set
-   `DATABASE_URL` to the Supabase transaction-pooler URL and run:
+2. Create the database schema using one of these methods:
+
+   - In the Supabase **SQL Editor**, run [`scripts/supabase_schema.sql`](scripts/supabase_schema.sql).
+     This script is for a new project and enables row-level security without
+     adding public API policies. AquaSense accesses the database from its
+     trusted Flask server using the project database owner.
+   - Or initialize it from a trusted local machine with the application
+     initializer below. Do not run both methods on a populated database.
+
+   Set `DATABASE_URL` to the Supabase transaction-pooler URL and run:
 
    ```powershell
    $env:DATABASE_URL = "postgresql://postgres.PROJECT_REF:PASSWORD@POOLER_HOST:6543/postgres?sslmode=require"
