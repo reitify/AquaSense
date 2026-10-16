@@ -3,7 +3,7 @@
   "buildCommand": "python scripts/prepare_vercel_static.py",
   "functions": {
     "main.py": {
-      "excludeFiles": "{tests/**,.venv/**,instance/**,reports/**,app/static/**}"
+      "excludeFiles": "{tests/**,.venv/**,instance/**,reports/**}"
     }
   }
 }
