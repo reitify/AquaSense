@@ -1,0 +1,1 @@
+// ESP32 firmware scaffold; add actual sensor libraries and device authentication.

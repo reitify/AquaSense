@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Login | AquaSense{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">Access portal</p>
+    <h1>Sign in</h1>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="field-group">
+        <label for="username">Username</label>
+        {{ form.username(class_='text-input', placeholder='Enter username') }}
+      </div>
+      <div class="field-group">
+        <label for="password">Password</label>
+        {{ form.password(class_='text-input', placeholder='Enter password') }}
+      </div>
+      <button type="submit" class="primary-btn full-width">Log in</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

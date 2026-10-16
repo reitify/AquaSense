@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Decision Support | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Decision support</p>
+    <h1>Decision Support</h1>
+  </div>
+</section>
+
+{% if latest_reading %}
+<section class="decision-overview">
+  <article class="panel decision-current">
+    <div class="decision-panel-heading">
+      <div>
+        <p class="eyebrow">Latest assessment</p>
+        <h2>{{ latest_reading.river.name if latest_reading.river else 'River not assigned' }}</h2>
+      </div>
+      <span class="quality-pill quality-{{ latest_reading.quality_status|lower if latest_reading.quality_status else 'unknown' }}">{{ latest_reading.quality_status or 'Unknown' }}</span>
+    </div>
+    <p class="decision-timestamp">Reading #{{ latest_reading.id }} · {{ latest_reading.recorded_at.strftime('%b %d, %Y · %I:%M %p').replace(' 0', ' ') if latest_reading.recorded_at else 'Time unavailable' }}</p>
+    <p class="decision-explanation">Assessment is based on this saved reading, the app's turbidity bands, the ESP32 thermal flag, and active configured thresholds.</p>
+  </article>
+
+  <article class="panel decision-recommendation">
+    <p class="eyebrow">Recommended review</p>
+    <h2>Next step</h2>
+    <p>{{ recommendation }}</p>
+  </article>
+</section>
+
+<section class="panel full-width decision-sensor-analysis">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Per-sensor evaluation</p>
+      <h2>Rule-based analysis by sensor</h2>
+    </div>
+  </div>
+  <p class="decision-analysis-note">
+    TDS, pH, and temperature use active configured thresholds where available. Temperature also
+    reports the ESP32 thermal flag. No additional environmental limits are assumed when a rule is
+    not configured.
+  </p>
+  <div class="decision-analysis-grid">
+    {% for group in analysis_groups %}
+    <article class="decision-analysis-card">
+      <div class="decision-rule-heading">
+        <h3>{{ group.name }}</h3>
+        <span class="quality-pill quality-{{ group.status_class }}">{{ group.status }}</span>
+      </div>
+      <p class="decision-analysis-summary">{{ group.summary }}</p>
+      {% if group.evaluations %}
+      <ul class="decision-evaluation-list">
+        {% for evaluation in group.evaluations %}
+        <li>
+          <div>
+            <strong>{{ evaluation.name }}</strong>
+            <span>{{ evaluation.field }} · {{ evaluation.value }}</span>
+            <small>{{ evaluation.condition }}</small>
+            {% if evaluation.description %}<small>{{ evaluation.description }}</small>{% endif %}
+          </div>
+          <span class="quality-pill quality-{{ evaluation.status_class }}">{{ evaluation.status }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="decision-unconfigured">{{ group.empty_note }}</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel full-width decision-findings">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Rule evaluation</p>
+      <h2>Triggered rules and conditions</h2>
+    </div>
+    <span class="decision-count">{{ triggered_rules|length }} findings</span>
+  </div>
+  {% if triggered_rules %}
+  <div class="decision-rule-list">
+    {% for finding in triggered_rules %}
+    <article class="decision-rule">
+      <div class="decision-rule-heading">
+        <div>
+          <h3>{{ finding.name }}</h3>
+          <p>{{ finding.field }} · measured {{ finding.value }}</p>
+        </div>
+        <span class="quality-pill quality-{{ finding.severity|lower|replace(' ', '-') }}">{{ finding.severity }}</span>
+      </div>
+      <p class="decision-rule-condition">{{ finding.condition }}</p>
+      {% if finding.description %}<p class="decision-rule-description">{{ finding.description }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">No active configured threshold or thermal condition was triggered for this reading.</p>
+  {% endif %}
+</section>
+
+<section class="panel full-width decision-supporting-data">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Measured values</p>
+      <h2>Supporting sensor readings</h2>
+    </div>
+    <span class="decision-timestamp">Values from reading #{{ latest_reading.id }}</span>
+  </div>
+  <div class="decision-measurements-grid">
+    {% for group in measurements %}
+    <section class="decision-measurement-group">
+      <h3>{{ group.group }}</h3>
+      {% for channel in group.channels %}
+      <div class="decision-measurement-row"><span>{{ channel.label }}</span><strong>{{ channel.value }}</strong></div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="panel decision-empty">
+  <p class="eyebrow">Waiting for data</p>
+  <h2>No saved sensor readings</h2>
+  <p>The assessment workspace will populate after a device or operator records a reading.</p>
+</section>
+{% endif %}
+
+<section class="panel full-width">
+  <div class="panel-header">
+    <h2>Rule-Based Analysis</h2>
+  </div>
+  <p>
+    Turbidity sets the base category. An ESP32 thermal-anomaly flag raises it to Poor, and
+    breached active threshold rules can raise it to Fair, Poor, or Critical. The most severe
+    applicable status is retained. If turbidity is missing, the result starts as Unknown unless
+    another threshold rule or the thermal flag classifies the reading.
+  </p>
+  <pre><code>status = classify_turbidity(turbidity_ntu)
+if thermal_anomaly &gt; 0:
+    status = max_severity(status, "Poor")
+
+for rule in active_threshold_rules:
+    if measured_value_breaches(rule):
+        status = max_severity(status, rule.status)</code></pre>
+</section>
+
+<section class="panel full-width">
+  <div class="panel-header">
+    <h2>ESP32 Sensor Calculations</h2>
+  </div>
+  <p>
+    The ESP32 averages 20 ADC samples and converts its 12-bit reading to voltage with
+    <code>voltage = average_adc × 3.3 / 4095</code>. It sends calculated sensor values to the app.
+    The app preserves supplied values and fills a missing derived value only when its source
+    measurement is available. Clamp operations round to an integer and restrict the result to the
+    stated range.
+  </p>
+
+  <h3>Turbidity</h3>
+  <pre><code>turbidity_ntu = clamp(-1120.0 * voltage + 3000.0, 0, 3000)
+tss = clamp(turbidity_ntu * 0.5, 0, 10000)
+particle_level = clamp((turbidity_ntu / 1000) * 100, 0, 100)
+clarity = 100 - particle_level</code></pre>
+  <p>
+    The sketch defaults to TURBIDITY_SLOPE = -1120.0 and TURBIDITY_INTERCEPT = 3000.0.
+    These are example calibration coefficients, not universal sensor constants.
+  </p>
+
+  <h3>TDS and Derived Estimates</h3>
+  <pre><code>compensation = max(0.1, 1 + 0.02 * (water_temp_c - 25))
+v = adc_voltage / compensation
+tds_ppm = clamp((133.42*v^3 - 255.86*v^2 + 857.39*v) * 0.5 * TDS_FACTOR, 0, 10000)
+conductivity = clamp(tds_ppm * 2, 0, 20000)
+ionic_content = clamp(tds_ppm / 10, 0, 100)
+salinity = clamp(tds_ppm / 1000, 0, 100)</code></pre>
+  <p>
+    TDS_FACTOR defaults to 1.0. Conductivity, ionic content, and salinity are approximate
+    conversions from TDS, not independent sensor measurements.
+  </p>
+
+  <h3>pH</h3>
+  <pre><code>ph = clamp(7.0 + (PH7_VOLTAGE - voltage) * PH_SLOPE, 0, 14)
+stored_ph = ph * 100
+acidity = clamp((7 - ph) / 7 * 100, 0, 100)
+alkalinity = clamp((ph - 7) / 7 * 100, 0, 100)
+ph_stability = clamp(100 - (max_recent_ph - min_recent_ph) * 2, 0, 100)</code></pre>
+  <p>
+    PH7_VOLTAGE defaults to 2.50 V and PH_SLOPE to 5.70; calibrate them with buffer solutions.
+    pH is stored ×100, and stability uses up to 30 recent samples on that scale.
+  </p>
+
+  <h3>Temperature</h3>
+  <pre><code>temperature = water_temp_c * 100
+ambient_temperature = air_temp_c * 100
+change_rate = ((water_temp_c - previous_water_temp_c) / elapsed_minutes) * 100
+thermal_anomaly = water_temp_c &gt; 40 or water_temp_c &lt; 5
+                  or abs(water_temp_c - air_temp_c) &gt; 10</code></pre>
+  <p>
+    Water and ambient temperature are stored ×100; change rate is °C per minute ×100. The
+    ambient-difference check needs a valid DHT reading. Water quality index is not calculated
+    because the sketch does not define a WQI formula.
+  </p>
+</section>
+
+<section class="panel full-width">
+  <div class="panel-header">
+    <h2>Water Quality Assessment</h2>
+  </div>
+  <p>The base turbidity categories are Good through 5 NTU, Fair above 5 through 10 NTU, and Poor above 10 NTU.</p>
+  <pre><code>if turbidity_ntu is None:
+    status = "Unknown"
+elif turbidity_ntu <= 5:
+    status = "Good"
+elif turbidity_ntu <= 10:
+    status = "Fair"
+else:
+    status = "Poor"</code></pre>
+  <p>
+    The resulting status is saved with the reading and assessment. Poor or Critical readings
+    trigger alerts; configured threshold breaches also generate alerts with their rule severity.
+  </p>
+</section>
+{% endblock %}

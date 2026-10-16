@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chat | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header chat-page-header">
+  <div>
+    <p class="eyebrow">Private water-data assistant</p>
+    <h1>AquaSense AI Chat</h1>
+    <p class="page-subtitle">Ask questions about readings, rivers, trends, and alerts.</p>
+  </div>
+  <div class="chat-runtime {{ 'runtime-ready' if model_status.available else 'runtime-fallback' }}" id="chat-runtime" data-available="{{ 'true' if model_status.available else 'false' }}" data-provider="{{ model_status.provider }}">
+    <span class="runtime-indicator"></span>
+    <span id="runtime-message">{{ model_status.message }}{% if model_status.model %}: {{ model_status.model }}{% endif %}</span>
+  </div>
+</section>
+
+<section class="chat-workspace" aria-label="AquaSense assistant">
+  <aside class="chat-aside">
+    <div class="chat-aside-label">Suggested questions</div>
+    <button type="button" class="chat-suggestion" data-question="What is the average turbidity across all readings?">Average turbidity</button>
+    <button type="button" class="chat-suggestion" data-question="Compare the rivers by average turbidity.">Compare rivers</button>
+    <button type="button" class="chat-suggestion" data-question="What sensor channels are missing data?">Missing sensor data</button>
+    <button type="button" class="chat-suggestion" data-question="Summarize the current alerts.">Current alerts</button>
+    <p class="chat-privacy-note">With Groq configured, your question and AquaSense monitoring summaries are sent to Groq to generate a reply. Exact sensor calculations are answered directly from your database. Add a Groq API key to enable online AI.</p>
+  </aside>
+
+  <div class="chat-panel">
+    <div class="chat-transcript" id="chat-transcript" role="log" aria-live="polite" aria-relevant="additions text">
+      <article class="chat-message assistant-message">
+        <span class="chat-avatar" aria-hidden="true">A</span>
+        <div class="chat-message-body">
+          <div class="chat-message-name">AquaSense</div>
+          <p>{% if model_status.provider == 'online' %}Online AI is ready. Ask me about your monitoring data or water quality.{% elif model_status.available %}The local model is ready. Ask me about the saved monitoring data.{% else %}I can answer supported sensor calculations directly from your database. Configure a Groq API key for online AI replies.{% endif %}</p>
+        </div>
+      </article>
+    </div>
+
+    <form class="chat-composer" id="chat-form">
+      <input type="hidden" id="chat-csrf-token" value="{{ csrf_token() }}">
+      <label class="visually-hidden" for="chat-input">Ask AquaSense a question</label>
+      <textarea id="chat-input" name="message" rows="2" maxlength="2000" placeholder="Ask about your monitoring data…" required></textarea>
+      <button class="primary-btn chat-send" id="chat-send" type="submit" aria-label="Send message" title="Send message">Send</button>
+      <div class="chat-composer-hint">Enter to send · Shift+Enter for a new line</div>
+    </form>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Sensor Management | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Monitoring hardware</p>
+    <h1>Water quality sensors</h1>
+  </div>
+</section>
+
+<section class="sensor-grid">
+  <article class="sensor-card">
+    <h3>Turbidity Sensor</h3>
+    <p>Measures turbidity, TSS, particle level, and clarity.</p>
+  </article>
+  <article class="sensor-card">
+    <h3>TDS Sensor</h3>
+    <p>Measures TDS, conductivity, ionic content, and salinity.</p>
+  </article>
+  <article class="sensor-card">
+    <h3>pH Sensor</h3>
+    <p>Measures pH, acidity, alkalinity, and pH stability.</p>
+  </article>
+  <article class="sensor-card">
+    <h3>Temperature Sensor</h3>
+    <p>Measures temperature, AT, change rate, and thermal anomaly.</p>
+  </article>
+</section>
+{% endblock %}

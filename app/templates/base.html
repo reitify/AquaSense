@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}AquaSense{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <nav class="topbar" aria-label="Main navigation">
+      <a class="brand" href="{{ url_for('main.index') }}" aria-label="AquaSense dashboard">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>AquaSense</span>
+      </a>
+      <div class="nav-menu">
+        <button type="button" class="nav-menu-trigger" id="nav-menu-toggle" aria-expanded="false" aria-controls="primary-navigation">
+          <span class="menu-glyph" aria-hidden="true">≡</span><span>Sections</span>
+        </button>
+        <div class="nav-links" id="primary-navigation">
+          <a href="{{ url_for('main.index') }}" class="{{ 'is-active' if request.endpoint == 'main.index' else '' }}" {% if request.endpoint == 'main.index' %}aria-current="page"{% endif %}>Dashboard</a>
+          <a href="{{ url_for('alerts.index') }}" class="{{ 'is-active' if request.endpoint == 'alerts.index' else '' }}" {% if request.endpoint == 'alerts.index' %}aria-current="page"{% endif %}>Alerts</a>
+          <a href="{{ url_for('main.decision_support') }}" class="{{ 'is-active' if request.endpoint == 'main.decision_support' else '' }}" {% if request.endpoint == 'main.decision_support' %}aria-current="page"{% endif %}>Decision Support</a>
+          <a href="{{ url_for('analytics.index') }}" class="{{ 'is-active' if request.endpoint == 'analytics.index' else '' }}" {% if request.endpoint == 'analytics.index' %}aria-current="page"{% endif %}>Analytics</a>
+          <a href="{{ url_for('reports.index') }}" class="{{ 'is-active' if request.endpoint == 'reports.index' else '' }}" {% if request.endpoint == 'reports.index' %}aria-current="page"{% endif %}>Reports</a>
+          <a href="{{ url_for('chat.index') }}" class="{{ 'is-active' if request.endpoint == 'chat.index' else '' }}" {% if request.endpoint == 'chat.index' %}aria-current="page"{% endif %}>AI Chat</a>
+          <a href="{{ url_for('main.about') }}" class="{{ 'is-active' if request.endpoint == 'main.about' else '' }}" {% if request.endpoint == 'main.about' %}aria-current="page"{% endif %}>About</a>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to dark theme" aria-pressed="false" title="Toggle color theme">
+          <span class="theme-symbol" aria-hidden="true">◐</span>
+          <span class="theme-label">Dark mode</span>
+        </button>
+        {% if current_user.is_authenticated %}
+          {% set account_name = current_user.full_name or current_user.username %}
+          <details class="account-menu">
+            <summary><span class="account-avatar" aria-hidden="true">{{ account_name[:1]|upper }}</span><span class="account-name">{{ account_name }}</span></summary>
+            <div class="account-panel">
+              <span class="account-caption">Signed in as</span>
+              <strong>{{ account_name }}</strong>
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="secondary-btn">Log out</button>
+              </form>
+            </div>
+          </details>
+        {% else %}
+          <a class="primary-btn" href="{{ url_for('auth.login') }}">Log in</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <main class="app-shell">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category or 'info' }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+    <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
+  </body>
+</html>

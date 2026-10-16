@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Reports | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Research documents</p>
+    <h1>Monitoring reports</h1>
+    <p class="page-subtitle">A summary of saved monitoring data and per-river sensor averages.</p>
+  </div>
+  <div class="report-actions">
+    <button class="secondary-btn" type="button" onclick="window.print()">Print report</button>
+  </div>
+</section>
+
+<section class="panel full-width report-summary" aria-labelledby="summary-title">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Summary</p>
+      <h2 id="summary-title">Monitoring summary</h2>
+    </div>
+    <span class="report-summary-scope">{{ analysis.reading_count }} readings · {{ analysis.river_count }} rivers</span>
+  </div>
+
+  <section class="report-ai-analysis" aria-labelledby="local-ai-analysis-title">
+    <div class="panel-header">
+      <h3 id="local-ai-analysis-title">AquaSense Local AI Analysis</h3>
+    </div>
+    <p>Saved readings analyzed: <strong>{{ analysis.reading_count }}</strong> across <strong>{{ analysis.river_count }}</strong> rivers.</p>
+    {% if analysis.insights %}
+    <ul class="analysis-insights">
+      {% for insight in analysis.insights %}
+      <li><strong>{{ insight.title }}</strong>: {{ insight.detail }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-state">No local analysis insights are available yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="report-alert-summary" aria-labelledby="report-alert-title">
+    <h3 id="report-alert-title">Alert review</h3>
+    <div class="report-alert-stats">
+      <div><strong>{{ alert_summary.open }}</strong><span>Open</span></div>
+      <div><strong>{{ alert_summary.critical_open }}</strong><span>Critical open</span></div>
+      <div><strong>{{ alert_summary.monitoring }}</strong><span>Monitoring</span></div>
+      <div><strong>{{ alert_summary.resolved }}</strong><span>Resolved</span></div>
+    </div>
+  </section>
+
+  <div class="stats-grid">
+    <article class="stat-card accent-blue">
+      <span class="stat-label">Saved readings</span>
+      <strong>{{ summary.reading_count }}</strong>
+    </article>
+    <article class="stat-card accent-green">
+      <span class="stat-label">Rivers monitored</span>
+      <strong>{{ summary.river_count }}</strong>
+    </article>
+    <article class="stat-card accent-gold">
+      <span class="stat-label">Reporting period</span>
+      <strong class="summary-period">{{ summary.first_reading.strftime('%b %d, %Y') if summary.first_reading else 'No data' }}{% if summary.latest_reading and summary.latest_reading.date() != summary.first_reading.date() %} to {{ summary.latest_reading.strftime('%b %d, %Y') }}{% endif %}</strong>
+    </article>
+  </div>
+  <h3>Recorded assessments</h3>
+  {% if summary.status_counts %}
+  <p>{% for status, count in summary.status_counts %}{{ status or 'Unknown' }}: <strong>{{ count }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% else %}
+  <p class="empty-state">No assessment data is available yet.</p>
+  {% endif %}
+
+  <div class="report-channel-groups">
+    {% for group in channel_groups %}
+    <section class="report-channel-group">
+      <h3>{{ group.name }}</h3>
+      <div class="report-channel-list">
+        {% for channel in group.channels %}
+        <article class="report-channel">
+          <div class="report-channel-heading">
+            <strong>{{ channel.label }}</strong>
+            <span>{{ channel.count }}/{{ analysis.reading_count }} records</span>
+          </div>
+          <div class="report-channel-stats">
+            <span>Mean <strong>{{ channel.display_mean }}</strong></span>
+            <span>Range <strong>{{ channel.display_minimum }} – {{ channel.display_maximum }}</strong></span>
+            <span>Trend <strong>{{ channel.trend.direction|title if channel.trend else 'Insufficient data' }}</strong></span>
+          </div>
+          {% if channel.trend %}
+          <p class="report-channel-note">First {{ channel.display_first }} to latest {{ channel.display_latest }} (change {{ channel.display_change }})</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  {% if analysis.outliers %}
+  <section class="report-outliers">
+    <h3>Statistical outliers to review</h3>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Channel</th><th>River</th><th>Recorded</th><th>Value</th><th>Modified z-score</th></tr></thead>
+        <tbody>
+          {% for outlier in analysis.outliers %}
+          <tr>
+            <td>{{ outlier.label }}</td>
+            <td>{{ outlier.river }}</td>
+            <td>{{ outlier.recorded_at }}</td>
+            <td>{{ '%g'|format(outlier.value) }}</td>
+            <td>{{ '%+.2f'|format(outlier.score) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</section>
+
+<section class="panel full-width report-data">
+  <div class="panel-header">
+    <h2>Per-river sensor averages</h2>
+    <span>Generated {{ generated_at }}</span>
+  </div>
+
+  <div class="table-scroll">
+    <table class="data-table report-screen-table">
+      <thead>
+        <tr>
+          <th>River</th>
+          <th>Latest period</th>
+          <th>Status</th>
+          {% for column in report_columns %}<th>{{ column.label }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report_rows %}
+        <tr>
+          <td>{{ row.river }}</td>
+          <td>{{ row.period }}</td>
+          <td><span class="quality-pill quality-{{ row.status|lower|replace(' ', '-') }}">{{ row.status }}</span></td>
+          {% for column in report_columns %}
+          {% set value = row.averages[column.field] %}
+          <td>{{ row.display_averages[column.field] }}</td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ report_columns|length + 3 }}" class="empty-state">No river readings are available for reporting yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-scroll report-print-table-wrap">
+    <table class="data-table report-print-table">
+      <thead>
+        <tr><th>River</th><th>Latest period</th><th>Status</th><th>Sensor</th><th>Average</th></tr>
+      </thead>
+      <tbody>
+        {% for row in report_rows %}
+          {% for column in report_columns %}
+          {% set value = row.averages[column.field] %}
+          <tr>
+            <td>{{ row.river }}</td>
+            <td>{{ row.period }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ column.label }}</td>
+            <td>{{ row.display_averages[column.field] }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+        <tr><td colspan="5" class="empty-state">No river readings are available for reporting yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

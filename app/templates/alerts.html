@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header alerts-page-header">
+  <div>
+    <p class="eyebrow">Signal review</p>
+    <h1>Water quality alerts</h1>
+    <p class="page-subtitle">Review measurements that need attention and track their resolution.</p>
+  </div>
+  <span class="alert-total"><strong>{{ alerts|length }}</strong> shown</span>
+</section>
+
+<form class="alert-controls" method="get" action="{{ url_for('alerts.index') }}" role="search">
+  <input type="hidden" name="status" value="{{ selected_status }}">
+  <div class="alert-search-field">
+    <label for="alert-search">Search alerts</label>
+    <input id="alert-search" name="q" type="search" value="{{ search_term }}" placeholder="River or alert text">
+  </div>
+  <div class="alert-severity-field">
+    <label for="alert-severity">Severity</label>
+    <select id="alert-severity" name="severity" class="status-select">
+      {% for severity in ['all', 'critical', 'high', 'warning', 'moderate', 'low'] %}
+      <option value="{{ severity }}" {{ 'selected' if selected_severity == severity else '' }}>{{ severity|title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="primary-btn" type="submit">Apply filters</button>
+  {% if search_term or selected_severity != 'all' %}
+  <a class="secondary-btn" href="{{ url_for('alerts.index', status=selected_status) }}">Clear filters</a>
+  {% endif %}
+</form>
+
+<nav class="alert-filters" aria-label="Filter alerts">
+  <a class="alert-filter {{ 'is-active' if selected_status == 'all' else '' }}" href="{{ url_for('alerts.index', status='all', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'all' %}aria-current="page"{% endif %}>All <span>{{ counts.open + counts.monitoring + counts.resolved }}</span></a>
+  <a class="alert-filter {{ 'is-active' if selected_status == 'open' else '' }}" href="{{ url_for('alerts.index', status='open', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'open' %}aria-current="page"{% endif %}>Open <span>{{ counts.open }}</span></a>
+  <a class="alert-filter {{ 'is-active' if selected_status == 'monitoring' else '' }}" href="{{ url_for('alerts.index', status='monitoring', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'monitoring' %}aria-current="page"{% endif %}>Monitoring <span>{{ counts.monitoring }}</span></a>
+  <a class="alert-filter {{ 'is-active' if selected_status == 'resolved' else '' }}" href="{{ url_for('alerts.index', status='resolved', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'resolved' %}aria-current="page"{% endif %}>Resolved <span>{{ counts.resolved }}</span></a>
+</nav>
+
+<section class="alert-list" aria-label="Water quality alerts">
+  {% for alert in alerts %}
+  <article class="alert-card">
+    <header class="alert-card-header">
+      <div class="alert-heading">
+        <span class="alert-severity-dot severity-{{ alert.severity|lower }}"></span>
+        <div>
+          <p class="alert-location">{{ alert.river.name if alert.river else 'Unknown river' }}</p>
+          <h2>{{ alert.message }}</h2>
+        </div>
+      </div>
+      <div class="alert-state">
+        <span class="quality-pill quality-{{ alert.severity|lower }}">{{ alert.severity|title }}</span>
+        <span class="status status-{{ alert.status|lower }}">{{ alert.status|title }}</span>
+      </div>
+    </header>
+
+    <div class="alert-card-meta">
+      <span>Alert #{{ alert.id }}</span>
+      <time datetime="{{ alert.created_at.isoformat() if alert.created_at else '' }}">{{ alert.created_at.strftime('%b %d, %Y · %I:%M %p').replace('· 0', '· ') if alert.created_at else 'Time unavailable' }}</time>
+      {% if alert.reading %}<span>Reading #{{ alert.reading.id }}</span>{% endif %}
+    </div>
+
+    {% if alert.reading %}
+    <div class="alert-sensor-groups">
+      {% for group in alert.sensor_groups %}
+      <section class="alert-sensor-group">
+        <h3>{{ group.name }}</h3>
+        <div class="alert-measurements">
+          {% for measurement in group.measurements %}
+          <div class="alert-measurement"><span>{{ measurement.label }}</span><strong>{{ measurement.value }}</strong><time>{{ measurement.time }}</time></div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="alert-no-reading">No sensor reading is attached to this alert.</p>
+    {% endif %}
+
+    <footer class="alert-card-footer">
+      {% if alert.reading and alert.reading.quality_status %}<span>Reading status: <strong>{{ alert.reading.quality_status }}</strong></span>{% endif %}
+      <form method="post" action="{{ url_for('alerts.update_status', alert_id=alert.id) }}" class="alert-status-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="return_status" value="{{ selected_status }}">
+        <label class="visually-hidden" for="alert-status-{{ alert.id }}">Update alert {{ alert.id }} status</label>
+        <select id="alert-status-{{ alert.id }}" name="status" class="status-select">
+          {% for status in ['open', 'monitoring', 'resolved'] %}
+          <option value="{{ status }}" {{ 'selected' if alert.status|lower == status else '' }}>{{ status|title }}</option>
+          {% endfor %}
+        </select>
+        <button class="secondary-btn" type="submit">Update status</button>
+      </form>
+    </footer>
+  </article>
+  {% else %}
+  <div class="panel alert-empty-state">
+    <span class="empty-state-mark">✓</span>
+    <h2>No alerts match these filters</h2>
+    <p>Change the search, severity, or status filter to review other alert records.</p>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

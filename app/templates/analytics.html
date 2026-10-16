@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | AquaSense{% endblock %}
+
+{% block content %}
+{% macro trend_chart(panel_title, unit, value_key, display_key, maximum, has_data, color_class, description) %}
+<article class="panel chart-panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Recent samples</p>
+      <h2>{{ panel_title }}</h2>
+    </div>
+    <span class="chart-unit">{{ unit }}</span>
+  </div>
+  {% if has_data %}
+  <figure class="trend-chart" aria-label="{{ panel_title }} recent sample chart in {{ unit }}">
+    <div class="chart-scale"><span>{{ '%g'|format(maximum) }} {{ unit }}</span><span>0</span></div>
+    <div class="chart-series">
+      {% for point in trend_points %}
+      <div class="chart-point">
+        <div class="chart-track">
+          {% if point[value_key] is not none %}
+          <span class="chart-bar {{ color_class }}" style="height: {{ point[value_key ~ '_height'] }}%"></span>
+          {% else %}
+          <span class="chart-missing">No sample</span>
+          {% endif %}
+        </div>
+        <strong>{{ point[display_key] }}</strong>
+        <time title="{{ point.time }}">{{ point.label }}</time>
+      </div>
+      {% endfor %}
+    </div>
+    <figcaption>{{ description }}</figcaption>
+  </figure>
+  {% else %}
+  <p class="empty-state">No {{ panel_title|lower }} measurements in this period.</p>
+  {% endif %}
+</article>
+{% endmacro %}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Trend analysis</p>
+    <h1>Water quality analytics</h1>
+    <p class="page-subtitle">Summaries and trends from saved readings only.</p>
+  </div>
+</section>
+
+<form class="analytics-controls" method="get" action="{{ url_for('analytics.index') }}">
+  <label for="analytics-range">Time range</label>
+  <select id="analytics-range" name="range" class="status-select">
+    <option value="24h" {{ 'selected' if selected_range == '24h' else '' }}>Past 24 hours</option>
+    <option value="7d" {{ 'selected' if selected_range == '7d' else '' }}>Past 7 days</option>
+    <option value="30d" {{ 'selected' if selected_range == '30d' else '' }}>Past 30 days</option>
+    <option value="all" {{ 'selected' if selected_range == 'all' else '' }}>All recorded data</option>
+  </select>
+  <button class="secondary-btn" type="submit">Apply range</button>
+  <span>{{ summary.total_readings }} {{ 'reading' if summary.total_readings == 1 else 'readings' }} · {{ selected_range_label }}</span>
+</form>
+
+<section class="stats-grid">
+  <div class="stat-card accent-blue">
+    <span class="stat-label">Average turbidity</span>
+    <strong>{{ '%.2f'|format(summary.avg_turbidity) ~ ' NTU' if summary.avg_turbidity is not none else '—' }}</strong>
+    <small>Across {{ summary.total_readings }} saved readings</small>
+  </div>
+  <div class="stat-card accent-green">
+    <span class="stat-label">Average WQI</span>
+    <strong>{{ '%.2f'|format(summary.avg_wqi) if summary.avg_wqi is not none else '—' }}</strong>
+    <small>Only recorded scores are included</small>
+  </div>
+  <div class="stat-card accent-gold">
+    <span class="stat-label">Max turbidity</span>
+    <strong>{{ summary.max_turbidity ~ ' NTU' if summary.max_turbidity is not none else '—' }}</strong>
+    <small>Peak recorded value</small>
+  </div>
+  <div class="stat-card accent-red">
+    <span class="stat-label">Poor / critical readings</span>
+    <strong>{{ summary.risk_readings }}</strong>
+    <small>Based on saved quality assessments</small>
+  </div>
+</section>
+
+<section class="analytics-charts" aria-label="Recent measurement charts">
+  {{ trend_chart('Turbidity', 'NTU', 'turbidity', 'turbidity_display', recent_turbidity_max, has_turbidity_data, 'chart-bar-turbidity', 'Actual saved samples; bars use a 0-to-observed-maximum scale.') }}
+  {{ trend_chart('Total dissolved solids', 'ppm', 'tds', 'tds_display', recent_tds_max, has_tds_data, 'chart-bar-tds', 'Actual saved samples; missing TDS values remain unplotted.') }}
+  {{ trend_chart('pH', 'pH', 'ph', 'ph_display', recent_ph_max, has_ph_data, 'chart-bar-ph', 'Stored pH values are decoded from the ESP32 ×100 scale before display.') }}
+  {{ trend_chart('Water temperature', '°C', 'temperature', 'temperature_display', recent_temperature_max, has_temperature_data, 'chart-bar-temperature', 'Stored water temperatures are decoded from the ESP32 ×100 scale before display.') }}
+</section>
+
+<section class="sensor-section">
+  <div class="panel-header">
+    <h2>Average sensor results</h2>
+  </div>
+  <div class="sensor-average-grid">
+    {% for group in sensor_averages %}
+    <section class="sensor-average-group">
+      <h3>{{ group.name }}</h3>
+      {% for channel in group.channels %}
+      <div class="average-row">
+        <span>{{ channel.label }}</span>
+        <strong>{{ channel.display_value }}</strong>
+      </div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel full-width">
+  <div class="panel-header">
+    <h2>Recent readings</h2>
+  </div>
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead><tr><th>Recorded</th><th>Turbidity</th><th>TDS</th><th>pH</th><th>Temperature</th><th>WQI</th></tr></thead>
+      <tbody>
+        {% for point in trend_points %}
+        <tr>
+          <td>{{ point.label }} · {{ point.time }}</td>
+          <td>{{ point.turbidity_display }}</td>
+          <td>{{ point.tds_display }}</td>
+          <td>{{ point.ph_display }}</td>
+          <td>{{ point.temperature_display }}</td>
+          <td>{{ point.wqi if point.wqi is not none else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-state">No readings available yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

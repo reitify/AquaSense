@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Historical Records{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <div class="eyebrow">Monitoring</div>
+      <h1>All records</h1>
+    </div>
+  </section>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Water quality readings</h2>
+      <span class="status status-online" id="record-count">{{ readings|length }} records</span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>River</th>
+            <th>Turbidity</th>
+            <th>TSS estimate</th>
+            <th>Particle level</th>
+            <th>Clarity</th>
+            <th>TDS</th>
+            <th>Conductivity estimate</th>
+            <th>Ionic score</th>
+            <th>Salinity estimate</th>
+            <th>pH</th>
+            <th>Acidity</th>
+            <th>Alkalinity</th>
+            <th>pH stability</th>
+            <th>Temperature</th>
+            <th>Ambient temp</th>
+            <th>Change rate</th>
+            <th>Thermal anomaly</th>
+            <th>WQI</th>
+            <th>Status</th>
+            <th>Recorded</th>
+          </tr>
+        </thead>
+        <tbody id="readings-table-body">
+          {% if readings %}
+            {% for reading in readings %}
+              <tr>
+                <td>{{ reading.id }}</td>
+                <td>{{ reading.river.name if reading.river else ('River ' ~ reading.river_id) }}</td>
+                <td>{{ reading.display_values.turbidity_ntu }}</td>
+                <td>{{ reading.display_values.tss }}</td>
+                <td>{{ reading.display_values.particle_level }}</td>
+                <td>{{ reading.display_values.clarity }}</td>
+                <td>{{ reading.display_values.tds_ppm }}</td>
+                <td>{{ reading.display_values.conductivity }}</td>
+                <td>{{ reading.display_values.ionic_content }}</td>
+                <td>{{ reading.display_values.salinity }}</td>
+                <td>{{ reading.display_values.ph_value }}</td>
+                <td>{{ reading.display_values.acidity }}</td>
+                <td>{{ reading.display_values.alkalinity }}</td>
+                <td>{{ reading.display_values.ph_stability }}</td>
+                <td>{{ reading.display_values.temperature_c }}</td>
+                <td>{{ reading.display_values.ambient_temperature }}</td>
+                <td>{{ reading.display_values.change_rate }}</td>
+                <td>{{ reading.display_values.thermal_anomaly }}</td>
+                <td>{{ reading.display_values.water_quality_index }}</td>
+                <td><span class="quality-pill quality-{{ reading.quality_status|lower if reading.quality_status else 'unknown' }}">{{ reading.quality_status or 'Unknown' }}</span></td>
+                <td>{{ reading.recorded_at.strftime('%Y-%m-%d %I:%M %p').lstrip('0') if reading.recorded_at else '—' }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="21" class="empty-state">No readings available.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
