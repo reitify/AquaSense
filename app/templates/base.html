@@ -6,7 +6,7 @@
     <title>{% block title %}AquaSense{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
-  <body>
+  <body data-page="{{ request.endpoint or '' }}">
     <nav class="topbar" aria-label="Main navigation">
       <a class="brand" href="{{ url_for('main.index') }}" aria-label="AquaSense dashboard">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -24,6 +24,7 @@
           <a href="{{ url_for('reports.index') }}" class="{{ 'is-active' if request.endpoint == 'reports.index' else '' }}" {% if request.endpoint == 'reports.index' %}aria-current="page"{% endif %}>Reports</a>
           <a href="{{ url_for('chat.index') }}" class="{{ 'is-active' if request.endpoint == 'chat.index' else '' }}" {% if request.endpoint == 'chat.index' %}aria-current="page"{% endif %}>AI Chat</a>
           <a href="{{ url_for('main.about') }}" class="{{ 'is-active' if request.endpoint == 'main.about' else '' }}" {% if request.endpoint == 'main.about' %}aria-current="page"{% endif %}>About</a>
+          <a href="{{ url_for('main.settings') }}" class="{{ 'is-active' if request.endpoint == 'main.settings' else '' }}" {% if request.endpoint == 'main.settings' %}aria-current="page"{% endif %}>Settings</a>
         </div>
       </div>
       <div class="nav-actions">

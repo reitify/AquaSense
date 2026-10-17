@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "author": "AquaSense",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": -9.6,
+      "left": -4.8,
+      "attrs": {}
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled",
+      "top": -120,
+      "left": 290,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "ph",
+      "top": 80,
+      "left": 290,
+      "attrs": { "value": "775" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "turbidity",
+      "top": 200,
+      "left": 290,
+      "attrs": { "value": "829" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "tds",
+      "top": 320,
+      "left": 290,
+      "attrs": { "value": "500" }
+    },
+    {
+      "type": "wokwi-ds18b20",
+      "id": "water_temp",
+      "top": 440,
+      "left": 300,
+      "attrs": { "temperature": "26" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "water_temp_pullup",
+      "top": 465,
+      "left": 230,
+      "attrs": { "value": "4.7k" }
+    },
+    {
+      "type": "wokwi-ds18b20",
+      "id": "ambient_temp",
+      "top": 560,
+      "left": 300,
+      "attrs": { "temperature": "28" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "ambient_temp_pullup",
+      "top": 585,
+      "left": 230,
+      "attrs": { "value": "4.7k" }
+    }
+  ],
+  "connections": [
+    ["esp:21", "oled:SDA", "green", []],
+    ["esp:22", "oled:SCL", "blue", []],
+    ["esp:3V3", "oled:VCC", "red", []],
+    ["esp:GND.1", "oled:GND", "black", []],
+    ["esp:34", "ph:SIG", "green", []],
+    ["esp:3V3", "ph:VCC", "red", []],
+    ["esp:GND.1", "ph:GND", "black", []],
+    ["esp:35", "turbidity:SIG", "green", []],
+    ["esp:3V3", "turbidity:VCC", "red", []],
+    ["esp:GND.1", "turbidity:GND", "black", []],
+    ["esp:32", "tds:SIG", "green", []],
+    ["esp:3V3", "tds:VCC", "red", []],
+    ["esp:GND.1", "tds:GND", "black", []],
+    ["esp:4", "water_temp:DQ", "green", []],
+    ["esp:3V3", "water_temp:VCC", "red", []],
+    ["esp:GND.1", "water_temp:GND", "black", []],
+    ["esp:3V3", "water_temp_pullup:1", "red", []],
+    ["water_temp_pullup:2", "water_temp:DQ", "green", []],
+    ["esp:5", "ambient_temp:DQ", "green", []],
+    ["esp:3V3", "ambient_temp:VCC", "red", []],
+    ["esp:GND.1", "ambient_temp:GND", "black", []],
+    ["esp:3V3", "ambient_temp_pullup:1", "red", []],
+    ["ambient_temp_pullup:2", "ambient_temp:DQ", "green", []]
+  ],
+  "dependencies": {}
+}

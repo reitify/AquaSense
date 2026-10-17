@@ -1,10 +1,15 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 
 from app.extensions import db
 from app.models.alert import Alert
+from app.models.assessment import Assessment
+from app.models.audit_log import AuditLog
 from app.models.reading import Reading
 from app.models.river import River
 from app.models.sensor import Sensor
+from app.models.station import Station
+from app.models.threshold_rule import ThresholdRule
 from app.services.decision_support_service import get_decision_support_data
 from app.services.measurement_format_service import format_sensor_value
 
@@ -144,3 +149,55 @@ def decision_support():
 def about():
     """Display information about AquaSense."""
     return render_template("about.html")
+
+
+@main_bp.route("/settings")
+def settings():
+    """Display browser-local display and dashboard preferences."""
+    reset_counts = None
+    if current_user.is_authenticated and current_user.role == "admin":
+        reset_counts = {
+            "readings": Reading.query.count(),
+            "assessments": Assessment.query.count(),
+            "alerts": Alert.query.count(),
+            "sensors": Sensor.query.count(),
+            "stations": Station.query.count(),
+            "rivers": River.query.count(),
+            "threshold_rules": ThresholdRule.query.count(),
+        }
+    return render_template("settings.html", reset_counts=reset_counts)
+
+
+@main_bp.route("/settings/delete-all", methods=["POST"])
+@login_required
+def delete_all_data():
+    """Delete monitoring and configuration data after explicit admin confirmation."""
+    if current_user.role != "admin":
+        abort(403)
+
+    if request.form.get("confirmation", "").strip() != "DELETE ALL":
+        flash('Type "DELETE ALL" exactly to confirm the full reset. No data was deleted.', "danger")
+        return redirect(url_for("main.settings"))
+
+    deleted_counts = {
+        "alerts": Alert.query.delete(synchronize_session=False),
+        "assessments": Assessment.query.delete(synchronize_session=False),
+        "readings": Reading.query.delete(synchronize_session=False),
+        "sensors": Sensor.query.delete(synchronize_session=False),
+        "stations": Station.query.delete(synchronize_session=False),
+        "threshold rules": ThresholdRule.query.delete(synchronize_session=False),
+        "rivers": River.query.delete(synchronize_session=False),
+    }
+    db.session.add(AuditLog(
+        user_id=current_user.id,
+        action="full_data_reset",
+        entity_type="database",
+        details=", ".join(
+            f"{count} {label}" for label, count in deleted_counts.items()
+        ),
+        ip_address=request.remote_addr,
+    ))
+    db.session.commit()
+
+    flash("Full reset complete. Monitoring history and configuration were deleted; user accounts and audit logs were kept.", "success")
+    return redirect(url_for("main.settings"))

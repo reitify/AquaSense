@@ -1,1 +1,119 @@
-<!-- Settings page -->
+{% extends "base.html" %}
+
+{% block title %}Settings | AquaSense{% endblock %}
+
+{% block content %}
+<section class="page-header narrow">
+  <div>
+    <p class="eyebrow">Personalize your workspace</p>
+    <h1>Settings</h1>
+    <p class="page-subtitle">Adjust how AquaSense looks and how often the dashboard refreshes.</p>
+  </div>
+</section>
+
+<section class="settings-grid" aria-label="Display preferences">
+  <article class="panel settings-card">
+    <div class="settings-card-heading">
+      <span class="settings-icon" aria-hidden="true">◐</span>
+      <div>
+        <h2>Appearance</h2>
+        <p>Choose the color theme used across AquaSense.</p>
+      </div>
+    </div>
+    <label class="field-group" for="settings-theme">
+      <span>Color theme</span>
+      <select class="text-input" id="settings-theme" name="theme">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+  </article>
+
+  <article class="panel settings-card">
+    <div class="settings-card-heading">
+      <span class="settings-icon" aria-hidden="true">↻</span>
+      <div>
+        <h2>Dashboard updates</h2>
+        <p>Automatically reload the dashboard to check for new sensor readings.</p>
+      </div>
+    </div>
+    <label class="field-group" for="settings-refresh">
+      <span>Refresh interval</span>
+      <select class="text-input" id="settings-refresh" name="refresh-interval">
+        <option value="0">Off (manual refresh)</option>
+        <option value="15">Every 15 seconds</option>
+        <option value="30">Every 30 seconds</option>
+        <option value="60">Every minute</option>
+      </select>
+    </label>
+    <p class="settings-note">Automatic refresh applies only while you are on the dashboard.</p>
+  </article>
+</section>
+
+<p class="settings-save-status" id="settings-save-status" role="status" aria-live="polite">
+  Preferences are saved in this browser.
+</p>
+
+<section class="panel settings-recommendations">
+  <p class="eyebrow">Ideas for a future update</p>
+  <h2>Other useful settings</h2>
+  <div class="settings-idea-grid">
+    <article>
+      <h3>Alert notifications</h3>
+      <p>Choose which alert severities should trigger email or browser notifications.</p>
+    </article>
+    <article>
+      <h3>Measurement units</h3>
+      <p>Choose preferred units for temperature and other displayed measurements.</p>
+    </article>
+    <article>
+      <h3>Account and security</h3>
+      <p>Manage profile details, password, and active sessions.</p>
+    </article>
+    <article>
+      <h3>Monitoring thresholds</h3>
+      <p>Configure river-specific limits and the severity used when readings exceed them.</p>
+    </article>
+  </div>
+</section>
+
+{% if reset_counts is not none %}
+<section class="panel settings-danger-zone" aria-labelledby="reset-heading">
+  <p class="eyebrow">Administrator only</p>
+  <h2 id="reset-heading">Full data reset</h2>
+  <p>
+    Permanently delete all readings, assessments, alerts, registered sensors, stations,
+    rivers, and threshold rules. User accounts and audit logs will be kept.
+  </p>
+  <dl class="reset-counts">
+    <div><dt>Readings</dt><dd>{{ reset_counts.readings }}</dd></div>
+    <div><dt>Assessments</dt><dd>{{ reset_counts.assessments }}</dd></div>
+    <div><dt>Alerts</dt><dd>{{ reset_counts.alerts }}</dd></div>
+    <div><dt>Sensors</dt><dd>{{ reset_counts.sensors }}</dd></div>
+    <div><dt>Stations</dt><dd>{{ reset_counts.stations }}</dd></div>
+    <div><dt>Rivers</dt><dd>{{ reset_counts.rivers }}</dd></div>
+    <div><dt>Threshold rules</dt><dd>{{ reset_counts.threshold_rules }}</dd></div>
+  </dl>
+  <form method="post" action="{{ url_for('main.delete_all_data') }}" class="reset-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="field-group" for="reset-confirmation">
+      <span>Type <strong>DELETE ALL</strong> to confirm</span>
+      <input
+        class="text-input"
+        id="reset-confirmation"
+        name="confirmation"
+        type="text"
+        autocomplete="off"
+        required
+        pattern="DELETE ALL"
+        aria-describedby="reset-warning"
+      >
+    </label>
+    <p id="reset-warning" class="reset-warning">
+      This cannot be undone. The reset will remove all of the records listed above.
+    </p>
+    <button type="submit" class="danger-btn">Permanently delete all data</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

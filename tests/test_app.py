@@ -11,9 +11,12 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 from app import create_app
 from app.extensions import db
 from app.models.alert import Alert
+from app.models.assessment import Assessment
+from app.models.audit_log import AuditLog
 from app.models.reading import Reading
 from app.models.river import River
 from app.models.sensor import Sensor
+from app.models.station import Station
 from app.models.threshold_rule import ThresholdRule
 from app.models.user import User
 from app.schema import ensure_sensor_reading_columns
@@ -47,6 +50,180 @@ def test_ingestion_health_checks_database_connection():
         "service": "AquaSense ingestion",
         "database": "connected",
     }
+
+
+def test_settings_page_shows_display_preferences_and_future_ideas():
+    response = create_app().test_client().get("/settings")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Settings" in html
+    assert 'id="settings-theme"' in html
+    assert 'id="settings-refresh"' in html
+    assert "Every 15 seconds" in html
+    assert "Alert notifications" in html
+    assert "Monitoring thresholds" in html
+
+
+def test_full_reset_requires_admin_confirmation_and_keeps_account_and_audit_log():
+    app = create_app()
+    app.config["WTF_CSRF_ENABLED"] = False
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        admin = User(
+            full_name="Reset Admin",
+            username="reset-admin",
+            email="reset-admin@example.com",
+            role="admin",
+            is_active=True,
+        )
+        admin.set_password("test-password")
+        researcher = User(
+            full_name="Researcher",
+            username="researcher",
+            email="researcher@example.com",
+            role="researcher",
+            is_active=True,
+        )
+        researcher.set_password("test-password")
+        db.session.add_all([admin, researcher])
+        db.session.commit()
+
+        river = River(name="Reset River", municipality="Norzagaray")
+        db.session.add(river)
+        db.session.commit()
+        sensor = Sensor(device_id="reset-sensor", name="Reset Sensor", river_id=river.id)
+        station = Station(name="Reset Station", station_code="RESET-1", river_id=river.id)
+        reading = Reading(river_id=river.id, turbidity_ntu=12, quality_status="Poor")
+        rule = ThresholdRule(
+            parameter="turbidity_ntu",
+            rule_name="Reset rule",
+            max_value=5,
+            status="Poor",
+        )
+        db.session.add_all([sensor, station, reading, rule])
+        db.session.commit()
+        db.session.add_all([
+            Assessment(river_id=river.id, reading_id=reading.id, status="Poor"),
+            Alert(
+                river_id=river.id,
+                reading_id=reading.id,
+                message="Reset test alert",
+                severity="high",
+            ),
+            AuditLog(user_id=admin.id, action="before_reset"),
+        ])
+        admin_id = admin.id
+        researcher_id = researcher.id
+        db.session.commit()
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = str(admin_id)
+        session["_fresh"] = True
+
+    rejected = client.post(
+        "/settings/delete-all",
+        data={"confirmation": "DELETE"},
+        follow_redirects=True,
+    )
+    assert rejected.status_code == 200
+    assert "No data was deleted" in rejected.get_data(as_text=True)
+
+    with app.app_context():
+        assert Reading.query.count() == 1
+        assert River.query.count() == 1
+
+    response = client.post(
+        "/settings/delete-all",
+        data={"confirmation": "DELETE ALL"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Full reset complete" in response.get_data(as_text=True)
+
+    with app.app_context():
+        assert Alert.query.count() == 0
+        assert Assessment.query.count() == 0
+        assert Reading.query.count() == 0
+        assert Sensor.query.count() == 0
+        assert Station.query.count() == 0
+        assert ThresholdRule.query.count() == 0
+        assert River.query.count() == 0
+        assert User.query.filter_by(id=admin_id).count() == 1
+        assert User.query.filter_by(id=researcher_id).count() == 1
+        assert AuditLog.query.count() == 2
+        reset_log = AuditLog.query.filter_by(action="full_data_reset").one()
+        assert reset_log.user_id == admin_id
+
+
+def test_full_reset_is_admin_only():
+    app = create_app()
+    app.config["WTF_CSRF_ENABLED"] = False
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        user = User(
+            full_name="Researcher",
+            username="non-admin",
+            email="non-admin@example.com",
+            role="researcher",
+            is_active=True,
+        )
+        user.set_password("test-password")
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = str(user_id)
+        session["_fresh"] = True
+
+    response = client.post(
+        "/settings/delete-all",
+        data={"confirmation": "DELETE ALL"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_full_reset_requires_csrf_token():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        admin = User(
+            full_name="CSRF Admin",
+            username="csrf-admin",
+            email="csrf-admin@example.com",
+            role="admin",
+            is_active=True,
+        )
+        admin.set_password("test-password")
+        db.session.add(admin)
+        river = River(name="Protected River", municipality="Norzagaray")
+        db.session.add(river)
+        db.session.commit()
+        admin_id = admin.id
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = str(admin_id)
+        session["_fresh"] = True
+
+    response = client.post(
+        "/settings/delete-all",
+        data={"confirmation": "DELETE ALL"},
+    )
+
+    assert response.status_code == 400
+    with app.app_context():
+        assert River.query.count() == 1
 
 
 def test_sensor_formatter_decodes_scaled_values_and_trends():
