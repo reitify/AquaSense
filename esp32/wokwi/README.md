@@ -68,10 +68,9 @@ database credentials.
    Restart the simulation to randomly select a different river. The separate
    `AQUASENSE-ESP32-001` registration remains available for the original
    Wokwi-only test river.
-2. Ensure all four named synthetic rivers exist in the endpoint database. The
-   endpoint automatically registers the matching demo device on its first
-   upload. A local endpoint at `127.0.0.1` is not reachable from the
-   cloud-hosted Wokwi simulator.
+2. On first upload, the endpoint finds or creates the selected synthetic river
+   and registers its matching demo device. A local endpoint at `127.0.0.1` is
+   not reachable from the cloud-hosted Wokwi simulator.
 
 Do not put production credentials or a production device secret in a public
 Wokwi project. The current ingestion endpoint identifies the device by ID and

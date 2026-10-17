@@ -18,11 +18,11 @@ ingestion_bp = Blueprint(
     url_prefix="/api/ingestion",
 )
 
-WOKWI_DEMO_RIVER_NAMES = {
-    "WOKWI-DEMO-BAKAS": "Bakas River (Demo - Synthetic)",
-    "WOKWI-DEMO-MATIKTIK": "Matiktik River (Demo - Synthetic)",
-    "WOKWI-DEMO-KANYAKAN": "Kanyakan River (Demo - Synthetic)",
-    "WOKWI-DEMO-MARAMO": "Maramo River (Demo - Synthetic)",
+WOKWI_DEMO_RIVERS = {
+    "WOKWI-DEMO-BAKAS": ("Bakas River", "Bakas River (Demo - Synthetic)"),
+    "WOKWI-DEMO-MATIKTIK": ("Matiktik River", "Matiktik River (Demo - Synthetic)"),
+    "WOKWI-DEMO-KANYAKAN": ("Kanyakan River", "Kanyakan River (Demo - Synthetic)"),
+    "WOKWI-DEMO-MARAMO": ("Maramo River", "Maramo River (Demo - Synthetic)"),
 }
 
 MEASUREMENT_FIELDS = {
@@ -209,7 +209,7 @@ def ingest_reading():
     requested_river_id = payload.get("river_id")
 
     if not device_id or (
-        requested_river_id is None and device_id not in WOKWI_DEMO_RIVER_NAMES
+        requested_river_id is None and device_id not in WOKWI_DEMO_RIVERS
     ):
         return jsonify({
             "success": False,
@@ -249,19 +249,31 @@ def ingest_reading():
         }), 400
 
     sensor = Sensor.query.filter_by(device_id=device_id).first()
-    if sensor is None and device_id in WOKWI_DEMO_RIVER_NAMES:
-        river = River.query.filter_by(
-            name=WOKWI_DEMO_RIVER_NAMES[device_id]
-        ).first()
-        if river is not None:
+    if device_id in WOKWI_DEMO_RIVERS:
+        river_name, synthetic_river_name = WOKWI_DEMO_RIVERS[device_id]
+        river = River.query.filter_by(name=synthetic_river_name).first()
+        if river is None:
+            river = River.query.filter_by(name=river_name).first()
+        if river is None:
+            river = River(
+                name=synthetic_river_name,
+                municipality="Norzagaray",
+                description="Synthetic river used by the Wokwi demo sensor.",
+            )
+            db.session.add(river)
+            db.session.flush()
+
+        if sensor is None:
             sensor = Sensor(
                 device_id=device_id,
-                name=f"Wokwi demo sensor - {river.name}",
+                name=f"Wokwi demo sensor - {river_name}",
                 river_id=river.id,
                 is_active=True,
             )
             db.session.add(sensor)
             db.session.flush()
+        elif sensor.river_id != river.id:
+            sensor.river_id = river.id
 
     if sensor is None or not sensor.is_active:
         return jsonify({

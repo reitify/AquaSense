@@ -521,6 +521,34 @@ def test_wokwi_demo_sensor_is_registered_to_river_and_index_is_calculated():
         assert response.get_json()["success"] is True
 
 
+def test_wokwi_bootstraps_a_missing_synthetic_river_and_sensor():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+        response = app.test_client().post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "WOKWI-DEMO-BAKAS",
+                "turbidity_ntu": 5,
+            },
+        )
+
+        assert response.status_code == 201
+        river = River.query.filter_by(
+            name="Bakas River (Demo - Synthetic)"
+        ).one()
+        sensor = Sensor.query.filter_by(
+            device_id="WOKWI-DEMO-BAKAS"
+        ).one()
+        reading = Reading.query.one()
+        assert sensor.river_id == river.id
+        assert reading.river_id == river.id
+        assert reading.water_quality_index == 95
+
+
 def test_registered_sensor_cannot_submit_a_reading_for_another_river():
     app = create_app()
 
