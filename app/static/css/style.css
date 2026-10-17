@@ -1174,6 +1174,7 @@ html[data-theme="dark"] .quality-good, html[data-theme="dark"] .quality-low { ba
   .report-summary-scope { white-space: normal; }
   .report-channel-heading, .report-channel-stats { align-items: flex-start; }
   .alert-card-footer { align-items: flex-start; }
+  .dashboard-actions { flex-wrap: wrap; }
 }
 
 @media (max-width: 520px) {
@@ -1185,6 +1186,8 @@ html[data-theme="dark"] .quality-good, html[data-theme="dark"] .quality-low { ba
   .nav-actions > .primary-btn { min-height: 38px; padding: 0.4rem 0.65rem; }
   .app-shell { padding-inline: 0.75rem; }
   .page-header { flex-direction: column; }
+  .dashboard-actions { width: 100%; align-items: stretch; }
+  .dashboard-actions > * { flex: 1; }
   .page-header h1 { font-size: 1.4rem; }
   .stats-grid, .sensor-grid { grid-template-columns: 1fr; }
   .stat-card { padding: 0.85rem; }
@@ -1277,8 +1280,20 @@ html[data-theme="dark"] .quality-good, html[data-theme="dark"] .quality-low { ba
 }
 .settings-card .field-group { margin-bottom: 0; }
 .settings-card .field-group > span { font-weight: 600; }
-.settings-page-header { justify-content: space-between; }
-.settings-page-header .secondary-btn { gap: 0.4rem; }
+.dashboard-actions {
+  display: flex;
+  align-items: end;
+  gap: 0.65rem;
+}
+.dashboard-refresh-field {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.dashboard-refresh-field .text-input { min-height: 42px; padding: 0.55rem 0.7rem; }
+.dashboard-actions .secondary-btn { gap: 0.4rem; }
 .settings-save-status {
   min-height: 1.3rem;
   margin: 0.85rem 0 1.2rem;

@@ -3,15 +3,12 @@
 {% block title %}Settings | AquaSense{% endblock %}
 
 {% block content %}
-<section class="page-header settings-page-header">
+<section class="page-header narrow">
   <div>
     <p class="eyebrow">Personalize your workspace</p>
     <h1>Settings</h1>
     <p class="page-subtitle">Adjust how AquaSense looks and how often the dashboard refreshes.</p>
   </div>
-  <a class="secondary-btn" href="{{ url_for('main.settings') }}" aria-label="Refresh settings page">
-    <span aria-hidden="true">↻</span> Refresh
-  </a>
 </section>
 
 <section class="settings-grid" aria-label="Display preferences">
@@ -43,10 +40,10 @@
     <label class="field-group" for="settings-refresh">
       <span>Refresh interval</span>
       <select class="text-input" id="settings-refresh" name="refresh-interval">
-        <option value="0">Off (manual refresh)</option>
-        <option value="15">Every 15 seconds</option>
-        <option value="30">Every 30 seconds</option>
-        <option value="60">Every minute</option>
+        <option value="0">Off</option>
+        <option value="15">15 seconds</option>
+        <option value="30">30 seconds</option>
+        <option value="60">1 minute</option>
       </select>
     </label>
     <p class="settings-note">Automatic refresh applies only while you are on the dashboard.</p>

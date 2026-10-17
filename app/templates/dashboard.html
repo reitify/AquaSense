@@ -9,7 +9,21 @@
     <h1>River water quality</h1>
     <p class="page-subtitle">Latest recorded measurements and open monitoring issues.</p>
   </div>
-  <a class="primary-btn" href="{{ url_for('reports.index') }}">View report</a>
+  <div class="dashboard-actions">
+    <label class="dashboard-refresh-field" for="dashboard-refresh-interval">
+      <span>Auto-refresh</span>
+      <select class="text-input" id="dashboard-refresh-interval" name="refresh-interval">
+        <option value="0">Off</option>
+        <option value="15">15 seconds</option>
+        <option value="30">30 seconds</option>
+        <option value="60">1 minute</option>
+      </select>
+    </label>
+    <button type="button" class="secondary-btn" id="dashboard-refresh-now">
+      <span aria-hidden="true">↻</span> Refresh now
+    </button>
+    <a class="primary-btn" href="{{ url_for('reports.index') }}">View report</a>
+  </div>
 </section>
 
 <section class="stats-grid" aria-label="Monitoring summary">

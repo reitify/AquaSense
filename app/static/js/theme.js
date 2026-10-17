@@ -4,7 +4,10 @@
   const button = document.getElementById("theme-toggle");
   const label = button?.querySelector(".theme-label");
   const themeSelect = document.getElementById("settings-theme");
-  const refreshSelect = document.getElementById("settings-refresh");
+  const refreshSelects = document.querySelectorAll(
+    "#settings-refresh, #dashboard-refresh-interval",
+  );
+  const refreshNowButton = document.getElementById("dashboard-refresh-now");
   const saveStatus = document.getElementById("settings-save-status");
   const navButton = document.getElementById("nav-menu-toggle");
   const navLinks = document.getElementById("primary-navigation");
@@ -44,7 +47,28 @@
 
   applyTheme(savedTheme);
 
-  if (refreshSelect) refreshSelect.value = refreshInterval;
+  let refreshTimeoutId;
+
+  const applyRefreshInterval = (interval) => {
+    refreshSelects.forEach((select) => {
+      select.value = interval;
+    });
+    window.clearTimeout(refreshTimeoutId);
+    if (document.body.dataset.page === "main.index" && Number(interval) > 0) {
+      refreshTimeoutId = window.setTimeout(
+        () => window.location.reload(),
+        Number(interval) * 1000,
+      );
+    }
+  };
+
+  const updateRefreshInterval = (interval) => {
+    const nextInterval = refreshIntervals.has(interval) ? interval : "0";
+    applyRefreshInterval(nextInterval);
+    savePreference("aquasense-dashboard-refresh", nextInterval);
+  };
+
+  applyRefreshInterval(refreshInterval);
 
   themeSelect?.addEventListener("change", () => {
     const nextTheme = themeSelect.value === "dark" ? "dark" : "light";
@@ -52,16 +76,20 @@
     savePreference(storageKey, nextTheme);
   });
 
-  refreshSelect?.addEventListener("change", () => {
-    const nextInterval = refreshIntervals.has(refreshSelect.value) ? refreshSelect.value : "0";
-    refreshSelect.value = nextInterval;
-    savePreference("aquasense-dashboard-refresh", nextInterval);
+  refreshSelects.forEach((select) => {
+    select.addEventListener("change", () => {
+      updateRefreshInterval(select.value);
+    });
   });
 
-  const refreshSeconds = Number(refreshInterval);
-  if (document.body.dataset.page === "main.index" && refreshSeconds > 0) {
-    window.setTimeout(() => window.location.reload(), refreshSeconds * 1000);
-  }
+  refreshNowButton?.addEventListener("click", () => window.location.reload());
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === "aquasense-dashboard-refresh") {
+      const nextInterval = refreshIntervals.has(event.newValue) ? event.newValue : "0";
+      applyRefreshInterval(nextInterval);
+    }
+  });
 
   button?.addEventListener("click", () => {
     const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";

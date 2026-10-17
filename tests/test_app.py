@@ -60,9 +60,22 @@ def test_settings_page_shows_display_preferences_and_refresh_control():
     assert "Settings" in html
     assert 'id="settings-theme"' in html
     assert 'id="settings-refresh"' in html
-    assert "Every 15 seconds" in html
-    assert 'aria-label="Refresh settings page"' in html
+    assert '<option value="15">15 seconds</option>' in html
+    assert 'aria-label="Refresh settings page"' not in html
     assert "Other useful settings" not in html
+
+
+def test_dashboard_shows_manual_and_configurable_refresh_controls():
+    response = create_app().test_client().get("/")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'id="dashboard-refresh-now"' in html
+    assert 'id="dashboard-refresh-interval"' in html
+    assert '<option value="0">Off</option>' in html
+    assert '<option value="15">15 seconds</option>' in html
+    assert '<option value="30">30 seconds</option>' in html
+    assert '<option value="60">1 minute</option>' in html
 
 
 def test_full_reset_requires_admin_confirmation_and_keeps_account_and_audit_log():
