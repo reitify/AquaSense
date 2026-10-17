@@ -54,9 +54,10 @@ from turbidity and thermal anomaly, applies active threshold rules, and creates
 applicable alerts. The ESP32 does not connect directly to Supabase or contain
 database credentials.
 
-1. The simulator rotates one reading across four explicitly synthetic demo
-   river/sensor registrations: Bakas, Matiktik, Kanyakan, and Maramo. Each
-   river receives a new Wokwi sample about once per minute. The separate
+1. At startup, the simulator randomly selects one of the four explicitly
+   synthetic demo river/sensor registrations: Bakas, Matiktik, Kanyakan, or
+   Maramo. Every reading in that simulation run goes to the selected river.
+   Restart the simulation to randomly select a different river. The separate
    `AQUASENSE-ESP32-001` registration remains available for the original
    Wokwi-only test river.
 2. Ensure the endpoint's `DATABASE_URL` is configured for your Supabase

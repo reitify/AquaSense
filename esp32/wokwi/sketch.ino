@@ -5,6 +5,7 @@
 #include <OneWire.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <esp_system.h>
 
 namespace {
 
@@ -47,6 +48,7 @@ constexpr UploadTarget UPLOAD_TARGETS[] = {
 };
 constexpr uint8_t UPLOAD_TARGET_COUNT =
     sizeof(UPLOAD_TARGETS) / sizeof(UPLOAD_TARGETS[0]);
+uint8_t selectedTargetIndex = 0;
 
 constexpr char WIFI_SSID[] = "Wokwi-GUEST";
 constexpr char WIFI_PASSWORD[] = "";
@@ -264,9 +266,7 @@ bool connectWiFi(unsigned long timeoutMs) {
 }
 
 const char* sendReading(const WaterReading& reading) {
-  static uint8_t nextTargetIndex = 0;
-  const UploadTarget& target = UPLOAD_TARGETS[nextTargetIndex];
-  nextTargetIndex = (nextTargetIndex + 1) % UPLOAD_TARGET_COUNT;
+  const UploadTarget& target = UPLOAD_TARGETS[selectedTargetIndex];
 
   if (!connectWiFi(10000)) {
     Serial.println("Upload failed: Wi-Fi is not connected.");
@@ -457,6 +457,11 @@ void setup() {
   Serial.println("Analog pH, turbidity, and TDS inputs are simulated.");
 
   connectWiFi(15000);
+  selectedTargetIndex = esp_random() % UPLOAD_TARGET_COUNT;
+  const UploadTarget& target = UPLOAD_TARGETS[selectedTargetIndex];
+  Serial.printf("This simulation run is assigned to %s (river %ld).\n",
+                target.deviceId,
+                target.riverId);
   sampleAndReport();
   lastSampleMs = millis();
   lastDisplayPageMs = millis();
