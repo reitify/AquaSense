@@ -1277,28 +1277,14 @@ html[data-theme="dark"] .quality-good, html[data-theme="dark"] .quality-low { ba
 }
 .settings-card .field-group { margin-bottom: 0; }
 .settings-card .field-group > span { font-weight: 600; }
+.settings-page-header { justify-content: space-between; }
+.settings-page-header .secondary-btn { gap: 0.4rem; }
 .settings-save-status {
   min-height: 1.3rem;
   margin: 0.85rem 0 1.2rem;
   color: var(--muted);
   font-size: 0.8rem;
 }
-.settings-recommendations { margin-top: 0; }
-.settings-recommendations > .eyebrow { margin-top: 0; }
-.settings-recommendations h2 { margin-bottom: 1rem; }
-.settings-idea-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 0.8rem;
-}
-.settings-idea-grid article {
-  padding: 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--panel-alt);
-}
-.settings-idea-grid h3 { margin: 0 0 0.35rem; font-size: 0.88rem; }
-.settings-idea-grid p { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
 .settings-danger-zone { margin-top: 1.2rem; border-color: #d68b82; }
 .settings-danger-zone > .eyebrow { color: var(--red); }
 .settings-danger-zone > h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }

@@ -52,7 +52,7 @@ def test_ingestion_health_checks_database_connection():
     }
 
 
-def test_settings_page_shows_display_preferences_and_future_ideas():
+def test_settings_page_shows_display_preferences_and_refresh_control():
     response = create_app().test_client().get("/settings")
 
     assert response.status_code == 200
@@ -61,8 +61,8 @@ def test_settings_page_shows_display_preferences_and_future_ideas():
     assert 'id="settings-theme"' in html
     assert 'id="settings-refresh"' in html
     assert "Every 15 seconds" in html
-    assert "Alert notifications" in html
-    assert "Monitoring thresholds" in html
+    assert 'aria-label="Refresh settings page"' in html
+    assert "Other useful settings" not in html
 
 
 def test_full_reset_requires_admin_confirmation_and_keeps_account_and_audit_log():

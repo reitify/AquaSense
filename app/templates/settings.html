@@ -3,12 +3,15 @@
 {% block title %}Settings | AquaSense{% endblock %}
 
 {% block content %}
-<section class="page-header narrow">
+<section class="page-header settings-page-header">
   <div>
     <p class="eyebrow">Personalize your workspace</p>
     <h1>Settings</h1>
     <p class="page-subtitle">Adjust how AquaSense looks and how often the dashboard refreshes.</p>
   </div>
+  <a class="secondary-btn" href="{{ url_for('main.settings') }}" aria-label="Refresh settings page">
+    <span aria-hidden="true">↻</span> Refresh
+  </a>
 </section>
 
 <section class="settings-grid" aria-label="Display preferences">
@@ -53,29 +56,6 @@
 <p class="settings-save-status" id="settings-save-status" role="status" aria-live="polite">
   Preferences are saved in this browser.
 </p>
-
-<section class="panel settings-recommendations">
-  <p class="eyebrow">Ideas for a future update</p>
-  <h2>Other useful settings</h2>
-  <div class="settings-idea-grid">
-    <article>
-      <h3>Alert notifications</h3>
-      <p>Choose which alert severities should trigger email or browser notifications.</p>
-    </article>
-    <article>
-      <h3>Measurement units</h3>
-      <p>Choose preferred units for temperature and other displayed measurements.</p>
-    </article>
-    <article>
-      <h3>Account and security</h3>
-      <p>Manage profile details, password, and active sessions.</p>
-    </article>
-    <article>
-      <h3>Monitoring thresholds</h3>
-      <p>Configure river-specific limits and the severity used when readings exceed them.</p>
-    </article>
-  </div>
-</section>
 
 {% if reset_counts is not none %}
 <section class="panel settings-danger-zone" aria-labelledby="reset-heading">
