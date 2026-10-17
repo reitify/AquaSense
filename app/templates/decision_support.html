@@ -202,7 +202,13 @@ thermal_anomaly = water_temp_c &gt; 40 or water_temp_c &lt; 5
   <p>
     Water and ambient temperature are stored ×100; change rate is °C per minute ×100. The
     ambient-difference check needs a valid DHT reading. Water quality index is not calculated
-    because the sketch does not define a WQI formula.
+    by the sketch. The server calculates an AquaSense demo index (0-100) as the equal-weight
+    average of available pH, turbidity, TDS, and water-temperature scores. Those scores are
+    <code>clamp(100 - turbidity_NTU, 0, 100)</code>,
+    <code>clamp(100 - 20 × abs(pH - 7), 0, 100)</code>,
+    <code>clamp(100 - TDS_ppm / 20, 0, 100)</code>, and
+    <code>clamp(100 - 2 × abs(water_temperature_C - 25), 0, 100)</code>.
+    This illustrative project score is not a regulatory water-quality index.
   </p>
 </section>
 

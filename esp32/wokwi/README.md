@@ -49,9 +49,17 @@ The firmware posts primary and derived measurement fields as JSON to
 derived indicators, temperature scaling, and anomaly checks follow the
 documented ESP32 calculations. pH and temperatures are sent ×100, matching the
 database convention; the endpoint converts them for assessment and display.
-The Flask endpoint saves the reading and assessment, derives quality severity
-from turbidity and thermal anomaly, applies active threshold rules, and creates
-applicable alerts. The ESP32 does not connect directly to Supabase or contain
+The Flask endpoint maps each of the four fixed Wokwi demo device IDs to its
+existing synthetic river, so the firmware does not depend on database IDs.
+It saves the reading and assessment, derives quality severity from turbidity
+and thermal anomaly, applies active threshold rules, calculates the AquaSense
+demo water-quality index, and creates applicable alerts. This 0-100 index is
+an equal-weight average of the pH, turbidity, TDS, and water-temperature scores
+when those measurements are present. Scores are clamped to 0-100:
+`100 - turbidity_NTU`, `100 - 20 * abs(pH - 7)`,
+`100 - TDS_ppm / 20`, and
+`100 - 2 * abs(water_temperature_C - 25)`. It is not a regulatory
+water-quality index. The ESP32 does not connect directly to Supabase or contain
 database credentials.
 
 1. At startup, the simulator randomly selects one of the four explicitly
@@ -60,9 +68,10 @@ database credentials.
    Restart the simulation to randomly select a different river. The separate
    `AQUASENSE-ESP32-001` registration remains available for the original
    Wokwi-only test river.
-2. Ensure the endpoint's `DATABASE_URL` is configured for your Supabase
-   PostgreSQL database. A local endpoint at `127.0.0.1` is not reachable from
-   the cloud-hosted Wokwi simulator.
+2. Ensure all four named synthetic rivers exist in the endpoint database. The
+   endpoint automatically registers the matching demo device on its first
+   upload. A local endpoint at `127.0.0.1` is not reachable from the
+   cloud-hosted Wokwi simulator.
 
 Do not put production credentials or a production device secret in a public
 Wokwi project. The current ingestion endpoint identifies the device by ID and

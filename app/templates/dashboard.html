@@ -169,7 +169,7 @@
           <td>{{ '%g ppm'|format(reading.tds_ppm) if reading.tds_ppm is not none else '—' }}</td>
           <td>{{ reading.display_ph }}</td>
           <td>{{ reading.display_temperature }}</td>
-          <td>{{ '%g'|format(reading.water_quality_index) if reading.water_quality_index is not none else '—' }}</td>
+          <td>{{ '%g'|format(reading.display_water_quality_index) if reading.display_water_quality_index is not none else '—' }}</td>
           <td><span class="quality-pill quality-{{ reading.quality_status|lower if reading.quality_status else 'unknown' }}">{{ reading.quality_status or 'Unknown' }}</span></td>
         </tr>
         {% else %}

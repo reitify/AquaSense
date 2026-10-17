@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import csrf, db
 from app.models.reading import Reading
+from app.models.river import River
 from app.models.sensor import Sensor
 from app.services.alert_service import create_alert
 from app.services.assessment_service import assess_reading, create_assessment
@@ -16,6 +17,13 @@ ingestion_bp = Blueprint(
     __name__,
     url_prefix="/api/ingestion",
 )
+
+WOKWI_DEMO_RIVER_NAMES = {
+    "WOKWI-DEMO-BAKAS": "Bakas River (Demo - Synthetic)",
+    "WOKWI-DEMO-MATIKTIK": "Matiktik River (Demo - Synthetic)",
+    "WOKWI-DEMO-KANYAKAN": "Kanyakan River (Demo - Synthetic)",
+    "WOKWI-DEMO-MARAMO": "Maramo River (Demo - Synthetic)",
+}
 
 MEASUREMENT_FIELDS = {
     "turbidity_ntu": {"turbidity"},
@@ -197,24 +205,27 @@ def ingest_reading():
             "error": "A valid JSON object is required.",
         }), 400
 
-    device_id = payload.get("device_id")
-    river_id = payload.get("river_id")
+    device_id = str(payload.get("device_id") or "").strip()
+    requested_river_id = payload.get("river_id")
 
-    if not device_id or river_id is None:
+    if not device_id or (
+        requested_river_id is None and device_id not in WOKWI_DEMO_RIVER_NAMES
+    ):
         return jsonify({
             "success": False,
-            "error": "device_id and river_id are required.",
+            "error": "device_id and river_id are required for this device.",
         }), 400
 
-    try:
-        river_id = int(river_id)
-    except (TypeError, ValueError):
-        return jsonify({
-            "success": False,
-            "error": "river_id must be numeric.",
-        }), 400
+    if requested_river_id is not None:
+        try:
+            requested_river_id = int(requested_river_id)
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "error": "river_id must be numeric.",
+            }), 400
 
-    if river_id <= 0:
+    if requested_river_id is not None and requested_river_id <= 0:
         return jsonify({
             "success": False,
             "error": "Invalid river ID.",
@@ -238,12 +249,33 @@ def ingest_reading():
         }), 400
 
     sensor = Sensor.query.filter_by(device_id=device_id).first()
+    if sensor is None and device_id in WOKWI_DEMO_RIVER_NAMES:
+        river = River.query.filter_by(
+            name=WOKWI_DEMO_RIVER_NAMES[device_id]
+        ).first()
+        if river is not None:
+            sensor = Sensor(
+                device_id=device_id,
+                name=f"Wokwi demo sensor - {river.name}",
+                river_id=river.id,
+                is_active=True,
+            )
+            db.session.add(sensor)
+            db.session.flush()
 
-    if sensor is None:
+    if sensor is None or not sensor.is_active:
         return jsonify({
             "success": False,
             "error": "Unknown sensor device.",
         }), 403
+
+    if requested_river_id is not None and requested_river_id != sensor.river_id:
+        return jsonify({
+            "success": False,
+            "error": "river_id does not match the registered sensor river.",
+        }), 400
+
+    river_id = sensor.river_id
 
     recorded_at = datetime.now(timezone.utc)
     timestamp = payload.get("recorded_at")

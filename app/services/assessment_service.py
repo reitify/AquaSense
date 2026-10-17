@@ -64,10 +64,42 @@ def determine_quality_status(turbidity_ntu):
     return "Poor"
 
 
+def calculate_water_quality_index(reading):
+    """Calculate AquaSense's equal-weight 0-100 demo index from primary sensors."""
+    scores = []
+
+    if reading.turbidity_ntu is not None:
+        scores.append(max(0.0, min(100.0, 100.0 - reading.turbidity_ntu)))
+
+    if reading.ph_value is not None:
+        ph_value = reading.ph_value
+        if abs(ph_value) > 14:
+            ph_value /= 100
+        scores.append(max(0.0, 100.0 - abs(ph_value - 7.0) * 20.0))
+
+    if reading.tds_ppm is not None:
+        tds_ppm = max(0.0, reading.tds_ppm)
+        scores.append(max(0.0, 100.0 - tds_ppm / 20.0))
+
+    if reading.temperature_c is not None:
+        temperature = reading.temperature_c
+        if abs(temperature) > 125:
+            temperature /= 100
+        scores.append(max(0.0, 100.0 - abs(temperature - 25.0) * 2.0))
+
+    if not scores:
+        return None
+
+    return round(sum(scores) / len(scores), 2)
+
+
 def assess_reading(reading):
     """Assess a reading and update its quality status."""
     if reading is None:
         raise ValueError("A reading is required.")
+
+    if reading.water_quality_index is None:
+        reading.water_quality_index = calculate_water_quality_index(reading)
 
     status = determine_quality_status(reading.turbidity_ntu)
     if reading.thermal_anomaly is not None and reading.thermal_anomaly > 0:

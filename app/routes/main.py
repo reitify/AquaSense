@@ -10,6 +10,7 @@ from app.models.river import River
 from app.models.sensor import Sensor
 from app.models.station import Station
 from app.models.threshold_rule import ThresholdRule
+from app.services.assessment_service import calculate_water_quality_index
 from app.services.decision_support_service import get_decision_support_data
 from app.services.measurement_format_service import format_sensor_value
 
@@ -124,6 +125,11 @@ def index():
         reading.display_temperature = format_sensor_value(
             "temperature_c",
             reading.temperature_c,
+        )
+        reading.display_water_quality_index = (
+            reading.water_quality_index
+            if reading.water_quality_index is not None
+            else calculate_water_quality_index(reading)
         )
 
     return render_template(

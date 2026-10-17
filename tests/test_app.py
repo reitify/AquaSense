@@ -20,6 +20,7 @@ from app.models.station import Station
 from app.models.threshold_rule import ThresholdRule
 from app.models.user import User
 from app.schema import ensure_sensor_reading_columns
+from app.services.assessment_service import calculate_water_quality_index
 from app.services import chat_service
 from app.services.chat_service import local_model_status
 from app.services.local_analysis_service import analyze_monitoring_data
@@ -488,6 +489,80 @@ def test_ingestion_fills_missing_esp32_derived_measurements():
         assert sorted(alert.severity for alert in alerts) == ["high", "warning"]
 
 
+def test_wokwi_demo_sensor_is_registered_to_river_and_index_is_calculated():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        river = River(name="Maramo River (Demo - Synthetic)")
+        db.session.add(river)
+        db.session.commit()
+
+        response = app.test_client().post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "WOKWI-DEMO-MARAMO",
+                "ph_value": 700,
+                "turbidity_ntu": 5,
+                "tds_ppm": 622,
+                "temperature_c": 2600,
+            },
+        )
+
+        assert response.status_code == 201
+        reading = Reading.query.order_by(Reading.id.desc()).first()
+        sensor = Sensor.query.filter_by(
+            device_id="WOKWI-DEMO-MARAMO"
+        ).one()
+        assert sensor.river_id == river.id
+        assert reading.river_id == river.id
+        assert reading.water_quality_index == 90.47
+        assert response.get_json()["success"] is True
+
+
+def test_registered_sensor_cannot_submit_a_reading_for_another_river():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        registered_river = River(name="Registered River")
+        other_river = River(name="Other River")
+        db.session.add_all([registered_river, other_river])
+        db.session.commit()
+        db.session.add(Sensor(
+            device_id="river-bound-sensor",
+            name="River-bound Sensor",
+            river_id=registered_river.id,
+        ))
+        db.session.commit()
+
+        response = app.test_client().post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "river-bound-sensor",
+                "river_id": other_river.id,
+                "turbidity_ntu": 5,
+            },
+        )
+
+        assert response.status_code == 400
+        assert Reading.query.count() == 0
+
+
+def test_demo_index_uses_available_primary_sensor_scores():
+    reading = Reading(
+        river_id=1,
+        turbidity_ntu=5,
+        tds_ppm=600,
+        ph_value=700,
+        temperature_c=2600,
+    )
+
+    assert calculate_water_quality_index(reading) == 90.75
+
+
 def test_configured_pH_threshold_creates_alert_without_turbidity():
     app = create_app()
 
@@ -548,6 +623,31 @@ def test_dashboard_lists_sensor_types():
         "temperature sensor",
     ]:
         assert sensor_name in html
+
+
+def test_dashboard_shows_a_derived_index_for_older_readings_without_one():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        river = River(name="Index Display River")
+        db.session.add(river)
+        db.session.commit()
+        reading = Reading(
+            river_id=river.id,
+            turbidity_ntu=5,
+            quality_status="Good",
+        )
+        db.session.add(reading)
+        db.session.commit()
+        reading_id = reading.id
+
+        response = app.test_client().get("/")
+
+        assert response.status_code == 200
+        assert b"<td>95</td>" in response.data
+        assert db.session.get(Reading, reading_id).water_quality_index is None
 
 
 def test_seed_demo_data_creates_records():

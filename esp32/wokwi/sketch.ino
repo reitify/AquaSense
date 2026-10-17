@@ -37,14 +37,14 @@ constexpr char API_URL[] =
 
 struct UploadTarget {
   const char* deviceId;
-  long riverId;
+  const char* riverName;
 };
 
 constexpr UploadTarget UPLOAD_TARGETS[] = {
-    {"WOKWI-DEMO-BAKAS", 2},
-    {"WOKWI-DEMO-MATIKTIK", 3},
-    {"WOKWI-DEMO-KANYAKAN", 4},
-    {"WOKWI-DEMO-MARAMO", 5},
+    {"WOKWI-DEMO-BAKAS", "Bakas River"},
+    {"WOKWI-DEMO-MATIKTIK", "Matiktik River"},
+    {"WOKWI-DEMO-KANYAKAN", "Kanyakan River"},
+    {"WOKWI-DEMO-MARAMO", "Maramo River"},
 };
 constexpr uint8_t UPLOAD_TARGET_COUNT =
     sizeof(UPLOAD_TARGETS) / sizeof(UPLOAD_TARGETS[0]);
@@ -254,6 +254,7 @@ bool connectWiFi(unsigned long timeoutMs) {
   }
 
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, 6);
 
   const unsigned long startedAt = millis();
@@ -277,7 +278,7 @@ const char* sendReading(const WaterReading& reading) {
   const int payloadLength = snprintf(
       payload,
       sizeof(payload),
-      "{\"device_id\":\"%s\",\"river_id\":%ld,"
+      "{\"device_id\":\"%s\","
       "\"ph_value\":%.0f,\"turbidity_ntu\":%.0f,\"tds_ppm\":%.0f,"
       "\"tss\":%.0f,\"particle_level\":%.0f,\"clarity\":%.0f,"
       "\"conductivity\":%.0f,\"ionic_content\":%.0f,\"salinity\":%.0f,"
@@ -285,7 +286,6 @@ const char* sendReading(const WaterReading& reading) {
       "\"temperature_c\":%.0f,\"ambient_temperature\":%.0f,"
       "\"change_rate\":%.0f,\"thermal_anomaly\":%.0f}",
       target.deviceId,
-      target.riverId,
       reading.ph * 100.0f,
       reading.turbidity,
       reading.tds,
@@ -309,9 +309,9 @@ const char* sendReading(const WaterReading& reading) {
     return "Payload error";
   }
 
-  Serial.printf("Uploading synthetic sample for %s (river %ld).\n",
+  Serial.printf("Uploading synthetic sample for %s (%s).\n",
                 target.deviceId,
-                target.riverId);
+                target.riverName);
 
   WiFiClientSecure tlsClient;
   tlsClient.setCACert(ROOT_CA_CERT);
@@ -459,9 +459,9 @@ void setup() {
   connectWiFi(15000);
   selectedTargetIndex = esp_random() % UPLOAD_TARGET_COUNT;
   const UploadTarget& target = UPLOAD_TARGETS[selectedTargetIndex];
-  Serial.printf("This simulation run is assigned to %s (river %ld).\n",
+  Serial.printf("This simulation run is assigned to %s (%s).\n",
                 target.deviceId,
-                target.riverId);
+                target.riverName);
   sampleAndReport();
   lastSampleMs = millis();
   lastDisplayPageMs = millis();
