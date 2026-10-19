@@ -13,6 +13,7 @@ from app.models.threshold_rule import ThresholdRule
 from app.services.assessment_service import calculate_water_quality_index
 from app.services.decision_support_service import get_decision_support_data
 from app.services.measurement_format_service import format_sensor_value
+from app.services.time_service import format_app_datetime
 
 
 main_bp = Blueprint("main", __name__)
@@ -83,7 +84,10 @@ def index():
                 "field": field,
                 "value": format_sensor_value(field, value),
                 "time": (
-                    reading.recorded_at.strftime("%b %d · %I:%M %p").replace(" 0", " ")
+                    format_app_datetime(
+                        reading.recorded_at,
+                        "%b %d · %I:%M %p",
+                    )
                     if reading and reading.recorded_at
                     else "Awaiting reading"
                 ),
@@ -107,6 +111,12 @@ def index():
         .limit(5)
         .all()
     )
+    for alert in alerts:
+        alert.dashboard_time_label = format_app_datetime(
+            alert.created_at,
+            "%I:%M %p",
+        )
+
     sensors = Sensor.query.order_by(Sensor.name.asc()).limit(6).all()
     recent_readings = (
         Reading.query
@@ -117,7 +127,7 @@ def index():
 
     for reading in recent_readings:
         reading.time_label = (
-            reading.recorded_at.strftime("%I:%M %p").lstrip("0")
+            format_app_datetime(reading.recorded_at, "%I:%M %p")
             if reading.recorded_at
             else "—"
         )

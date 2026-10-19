@@ -116,7 +116,7 @@
         <div>
           <strong>{{ alert.river.name if alert.river else 'Unknown river' }}</strong>
           <p>{{ alert.message }}</p>
-          <small>{{ alert.created_at.strftime('%I:%M %p').lstrip('0') if alert.created_at else 'Time unavailable' }}</small>
+          <small>{{ alert.dashboard_time_label }}</small>
         </div>
         <span class="badge badge-{{ 'high' if alert.severity|lower in ['high', 'critical'] else 'moderate' }}">{{ alert.severity|title }}</span>
       </li>

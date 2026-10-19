@@ -60,7 +60,7 @@
     </article>
     <article class="stat-card accent-gold">
       <span class="stat-label">Reporting period</span>
-      <strong class="summary-period">{{ summary.first_reading.strftime('%b %d, %Y') if summary.first_reading else 'No data' }}{% if summary.latest_reading and summary.latest_reading.date() != summary.first_reading.date() %} to {{ summary.latest_reading.strftime('%b %d, %Y') }}{% endif %}</strong>
+      <strong class="summary-period">{{ summary.first_reading_date or 'No data' }}{% if summary.latest_reading_date and summary.latest_reading_date != summary.first_reading_date %} to {{ summary.latest_reading_date }}{% endif %}</strong>
     </article>
   </div>
   <h3>Recorded assessments</h3>
@@ -130,7 +130,8 @@
       <thead>
         <tr>
           <th>River</th>
-          <th>Latest period</th>
+          <th>Date</th>
+          <th>Time</th>
           <th>Status</th>
           {% for column in report_columns %}<th>{{ column.label }}</th>{% endfor %}
         </tr>
@@ -139,7 +140,8 @@
         {% for row in report_rows %}
         <tr>
           <td>{{ row.river }}</td>
-          <td>{{ row.period }}</td>
+          <td>{{ row.date }}</td>
+          <td>{{ row.time }}</td>
           <td><span class="quality-pill quality-{{ row.status|lower|replace(' ', '-') }}">{{ row.status }}</span></td>
           {% for column in report_columns %}
           {% set value = row.averages[column.field] %}
@@ -147,7 +149,7 @@
           {% endfor %}
         </tr>
         {% else %}
-        <tr><td colspan="{{ report_columns|length + 3 }}" class="empty-state">No river readings are available for reporting yet.</td></tr>
+        <tr><td colspan="{{ report_columns|length + 4 }}" class="empty-state">No river readings are available for reporting yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -156,7 +158,7 @@
   <div class="table-scroll report-print-table-wrap">
     <table class="data-table report-print-table">
       <thead>
-        <tr><th>River</th><th>Latest period</th><th>Status</th><th>Sensor</th><th>Average</th></tr>
+        <tr><th>River</th><th>Date</th><th>Time</th><th>Status</th><th>Sensor</th><th>Average</th></tr>
       </thead>
       <tbody>
         {% for row in report_rows %}
@@ -164,14 +166,15 @@
           {% set value = row.averages[column.field] %}
           <tr>
             <td>{{ row.river }}</td>
-            <td>{{ row.period }}</td>
+            <td>{{ row.date }}</td>
+            <td>{{ row.time }}</td>
             <td>{{ row.status }}</td>
             <td>{{ column.label }}</td>
             <td>{{ row.display_averages[column.field] }}</td>
           </tr>
           {% endfor %}
         {% else %}
-        <tr><td colspan="5" class="empty-state">No river readings are available for reporting yet.</td></tr>
+        <tr><td colspan="6" class="empty-state">No river readings are available for reporting yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -853,7 +853,7 @@ def test_dashboard_shows_latest_values_for_all_sensors_with_time():
         html = response.get_data(as_text=True)
         for result in [
             "8.6 NTU", "8", "15", "85", "330 ppm", "490", "25", "0",
-            "7.2", "95", "23.1", "30", "12", "2:44 AM",
+            "7.2", "95", "23.1", "30", "12", "10:44 AM UTC+08:00",
         ]:
             assert result in html
         assert "7.20" in html
@@ -1060,6 +1060,7 @@ def test_analytics_and_reports_use_saved_sensor_data():
                 thermal_anomaly=0,
                 water_quality_index=74,
                 quality_status="Poor",
+                recorded_at=datetime(2026, 10, 13, 18, 30, tzinfo=timezone.utc),
             )
         )
         db.session.commit()
@@ -1086,6 +1087,8 @@ def test_analytics_and_reports_use_saved_sensor_data():
         assert "AquaSense Local AI Analysis" in report_html
         assert "Print report" in report_html
         assert "1 readings" in report_html
+        assert "14/10/26" in report_html
+        assert "2:30 AM UTC+08:00" in report_html
         assert "7.25" in report_html
         assert "28.46 °C" in report_html
         assert analytics_api["total_readings"] == 1

@@ -11,6 +11,7 @@ from app.models.reading import Reading
 from app.models.river import River
 from app.services.local_analysis_service import analyze_monitoring_data
 from app.services.measurement_format_service import format_sensor_delta, format_sensor_value
+from app.services.time_service import format_app_datetime
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 
@@ -107,7 +108,16 @@ def index():
         }
         report_rows.append({
             "river": river.name,
-            "period": latest.recorded_at.strftime("%b %Y") if latest and latest.recorded_at else "No data",
+            "date": (
+                format_app_datetime(latest.recorded_at, "%d/%m/%y")
+                if latest and latest.recorded_at
+                else "—"
+            ),
+            "time": (
+                format_app_datetime(latest.recorded_at, "%I:%M %p")
+                if latest and latest.recorded_at
+                else "—"
+            ),
             "status": latest.quality_status if latest else "No readings",
             "averages": averages_by_field,
             "display_averages": {
@@ -121,12 +131,23 @@ def index():
         report_rows=report_rows,
         report_columns=REPORT_COLUMNS,
         alert_summary=alert_summary,
-        generated_at=datetime.now(timezone.utc).strftime("%b %d, %Y %I:%M %p UTC").replace(" 0", " "),
+        generated_at=format_app_datetime(
+            datetime.now(timezone.utc),
+            "%d/%m/%y %I:%M %p",
+        ),
         summary={
             "reading_count": reading_count,
             "river_count": river_count,
-            "first_reading": first_reading,
-            "latest_reading": latest_reading,
+            "first_reading_date": (
+                format_app_datetime(first_reading, "%d/%m/%y")
+                if first_reading
+                else None
+            ),
+            "latest_reading_date": (
+                format_app_datetime(latest_reading, "%d/%m/%y")
+                if latest_reading
+                else None
+            ),
             "status_counts": status_counts,
         },
         analysis=analysis,
