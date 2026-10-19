@@ -82,6 +82,17 @@ uses the existing turbidity rule; other channels can trigger alerts when an
 active threshold rule is configured for that field. Validate sensor scaling
 and threshold limits against the device calibration before research use.
 
+## Automatic alert thresholds
+
+Administrators can add, edit, deactivate, and delete sensor thresholds from
+the **Automatic alert thresholds** panel on the Alerts page. Each enabled rule
+is evaluated against new readings; a breach creates an alert with the selected
+severity. Thresholds do not retroactively create alerts for readings already
+stored. pH, temperature, and temperature-change limits are entered in
+human-readable units and stored internally at ×100 to match the ESP32 payload.
+Validate thresholds against calibrated sensor specifications before operational
+use.
+
 ## AI chat
 
 For fast online replies, create a Groq API key and set `GROQ_API_KEY` in the

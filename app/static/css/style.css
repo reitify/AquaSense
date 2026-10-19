@@ -1353,6 +1353,22 @@ html[data-theme="dark"] .settings-danger-zone { border-color: #8d514c; }
 .alert-controls input, .analytics-controls select { min-height: 42px; padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
 .alert-controls .primary-btn, .alert-controls .secondary-btn, .analytics-controls .secondary-btn { min-height: 42px; white-space: nowrap; }
 .alert-controls .secondary-btn { display: inline-flex; align-items: center; text-decoration: none; }
+.threshold-manager { margin: 0 0 1rem; }
+.threshold-manager > summary { cursor: pointer; color: var(--primary-dark); }
+.threshold-create-form, .threshold-edit-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+  gap: 0.7rem;
+}
+.threshold-create-form { margin: 1rem 0; }
+.threshold-create-form .field-group,
+.threshold-edit-form .field-group { margin: 0; }
+.threshold-create-form .primary-btn,
+.threshold-edit-form button { min-height: 42px; }
+.threshold-edit-form { margin-bottom: 0.55rem; }
+.threshold-edit-form > span { color: var(--muted); font-size: 0.85rem; }
+.threshold-manager td > form + form { display: flex; justify-content: flex-end; }
 .analytics-controls > span { margin-left: auto; padding-bottom: 0.5rem; color: var(--muted); font-size: 0.75rem; }
 .analytics-controls select { min-width: 170px; }
 .analytics-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 1.25rem; }

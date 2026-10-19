@@ -1000,6 +1000,152 @@ def test_alert_search_and_severity_filters_compose():
         assert "South River" not in html
 
 
+def test_admin_can_configure_threshold_and_new_reading_creates_alert():
+    app = create_app()
+    app.config["WTF_CSRF_ENABLED"] = False
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        admin = User(
+            full_name="Threshold Admin",
+            username="threshold-admin",
+            email="threshold-admin@example.com",
+            role="admin",
+        )
+        admin.set_password("secret123")
+        river = River(name="Threshold River")
+        db.session.add_all([admin, river])
+        db.session.commit()
+        sensor = Sensor(
+            device_id="threshold-sensor",
+            name="Threshold Sensor",
+            river_id=river.id,
+        )
+        db.session.add(sensor)
+        db.session.commit()
+        admin_id = admin.id
+        river_id = river.id
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = str(admin_id)
+        session["_fresh"] = True
+
+    invalid = client.post(
+        "/alerts/thresholds",
+        data={
+            "rule_name": "Invalid range",
+            "parameter": "turbidity_ntu",
+            "min_value": "10",
+            "max_value": "6",
+            "status": "Poor",
+        },
+    )
+    assert invalid.status_code == 302
+    with app.app_context():
+        assert ThresholdRule.query.count() == 0
+
+    response = client.post(
+        "/alerts/thresholds",
+        data={
+            "rule_name": "Turbidity warning",
+            "parameter": "turbidity_ntu",
+            "max_value": "6",
+            "status": "Poor",
+            "description": "Review high turbidity.",
+        },
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        rule = ThresholdRule.query.one()
+        assert rule.max_value == 6
+        rule_id = rule.id
+    alerts_page = client.get("/alerts/")
+    assert alerts_page.status_code == 200
+    assert "Automatic alert thresholds" in alerts_page.get_data(as_text=True)
+    assert "Turbidity warning" in alerts_page.get_data(as_text=True)
+
+    with app.app_context():
+        response = client.post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "threshold-sensor",
+                "river_id": river_id,
+                "turbidity_ntu": 8,
+            },
+        )
+        assert response.status_code == 201
+        reading = Reading.query.one()
+        alert = Alert.query.filter_by(reading_id=reading.id).one()
+        assert reading.quality_status == "Poor"
+        assert "Turbidity warning" in alert.message
+        assert alert.severity == "high"
+
+    update = client.post(
+        f"/alerts/thresholds/{rule_id}",
+        data={
+            "rule_name": "Turbidity warning",
+            "max_value": "6",
+            "status": "Poor",
+        },
+    )
+    assert update.status_code == 302
+
+    with app.app_context():
+        assert ThresholdRule.query.one().is_active is False
+        response = client.post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "threshold-sensor",
+                "river_id": river_id,
+                "turbidity_ntu": 8,
+            },
+        )
+        assert response.status_code == 201
+        reading = Reading.query.order_by(Reading.id.desc()).first()
+        assert reading.quality_status == "Fair"
+        assert Alert.query.filter_by(reading_id=reading.id).count() == 0
+
+
+def test_non_admin_cannot_create_alert_threshold():
+    app = create_app()
+    app.config["WTF_CSRF_ENABLED"] = False
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        user = User(
+            full_name="Researcher",
+            username="threshold-researcher",
+            email="threshold-researcher@example.com",
+            role="researcher",
+        )
+        user.set_password("secret123")
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = str(user_id)
+        session["_fresh"] = True
+
+    response = client.post(
+        "/alerts/thresholds",
+        data={
+            "rule_name": "Unauthorized rule",
+            "parameter": "turbidity_ntu",
+            "max_value": "6",
+            "status": "Poor",
+        },
+    )
+    assert response.status_code == 403
+    with app.app_context():
+        assert ThresholdRule.query.count() == 0
+
+
 def test_existing_readings_table_is_upgraded_for_all_sensor_channels():
     app = create_app()
 

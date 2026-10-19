@@ -32,6 +32,86 @@
   {% endif %}
 </form>
 
+{% if is_admin %}
+<details class="panel threshold-manager">
+  <summary><strong>Automatic alert thresholds</strong></summary>
+  <p class="settings-note">Active thresholds are checked on each new sensor reading. Values use sensor units; pH, temperature, and temperature-change thresholds are entered in displayed units and stored at ×100.</p>
+  <form class="threshold-create-form" method="post" action="{{ url_for('alerts.create_threshold') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="field-group">
+      <span>Threshold name</span>
+      <input class="text-input" name="rule_name" maxlength="100" required>
+    </label>
+    <label class="field-group">
+      <span>Sensor measurement</span>
+      <select class="status-select" name="parameter" required>
+        {% for parameter, label, scale in threshold_options %}
+        <option value="{{ parameter }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field-group">
+      <span>Minimum (optional)</span>
+      <input class="text-input" type="number" step="any" name="min_value">
+    </label>
+    <label class="field-group">
+      <span>Maximum (optional)</span>
+      <input class="text-input" type="number" step="any" name="max_value">
+    </label>
+    <label class="field-group">
+      <span>Alert severity</span>
+      <select class="status-select" name="status" required>
+        {% for status in threshold_statuses %}
+        <option value="{{ status }}" {{ 'selected' if status == 'Poor' else '' }}>{{ status }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field-group">
+      <span>Description (optional)</span>
+      <input class="text-input" name="description" maxlength="500">
+    </label>
+    <button class="primary-btn" type="submit">Add threshold</button>
+  </form>
+
+  {% if threshold_rules %}
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr><th>Name</th><th>Measurement</th><th>Minimum</th><th>Maximum</th><th>Severity</th><th>Active</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for rule in threshold_rules %}
+        <tr>
+          <td colspan="7">
+            <form class="threshold-edit-form" method="post" action="{{ url_for('alerts.update_threshold', rule_id=rule.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input class="text-input" aria-label="Threshold name" name="rule_name" maxlength="100" value="{{ rule.rule_name }}" required>
+              <span>{{ threshold_labels.get(rule.parameter, rule.parameter) }}</span>
+              <input class="text-input" aria-label="Minimum threshold" type="number" step="any" name="min_value" value="{{ rule.min_display }}">
+              <input class="text-input" aria-label="Maximum threshold" type="number" step="any" name="max_value" value="{{ rule.max_display }}">
+              <select class="status-select" aria-label="Alert severity" name="status">
+                {% for status in threshold_statuses %}
+                <option value="{{ status }}" {{ 'selected' if rule.status == status else '' }}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <label><input type="checkbox" name="is_active" value="1" {{ 'checked' if rule.is_active else '' }}> Active</label>
+              <input type="hidden" name="description" value="{{ rule.description or '' }}">
+              <button class="secondary-btn" type="submit">Save</button>
+            </form>
+            <form method="post" action="{{ url_for('alerts.delete_threshold', rule_id=rule.id) }}" onsubmit="return confirm('Delete this threshold?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="danger-btn" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</details>
+{% endif %}
+
 <nav class="alert-filters" aria-label="Filter alerts">
   <a class="alert-filter {{ 'is-active' if selected_status == 'all' else '' }}" href="{{ url_for('alerts.index', status='all', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'all' %}aria-current="page"{% endif %}>All <span>{{ counts.open + counts.monitoring + counts.resolved }}</span></a>
   <a class="alert-filter {{ 'is-active' if selected_status == 'open' else '' }}" href="{{ url_for('alerts.index', status='open', severity=selected_severity, q=search_term or none) }}" {% if selected_status == 'open' %}aria-current="page"{% endif %}>Open <span>{{ counts.open }}</span></a>
