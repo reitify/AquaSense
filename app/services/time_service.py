@@ -21,6 +21,4 @@ def format_app_datetime(value, format_string):
         "",
         local_value.strftime(format_string),
     )
-    offset = local_value.strftime("%z")
-    timezone_label = f"UTC{offset[:3]}:{offset[3:]}"
-    return f"{formatted} {timezone_label}"
+    return formatted

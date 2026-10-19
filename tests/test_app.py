@@ -853,7 +853,7 @@ def test_dashboard_shows_latest_values_for_all_sensors_with_time():
         html = response.get_data(as_text=True)
         for result in [
             "8.6 NTU", "8", "15", "85", "330 ppm", "490", "25", "0",
-            "7.2", "95", "23.1", "30", "12", "10:44 AM UTC+08:00",
+            "7.2", "95", "23.1", "30", "12", "10:44 AM",
         ]:
             assert result in html
         assert "7.20" in html
@@ -1088,7 +1088,8 @@ def test_analytics_and_reports_use_saved_sensor_data():
         assert "Print report" in report_html
         assert "1 readings" in report_html
         assert "14/10/26" in report_html
-        assert "2:30 AM UTC+08:00" in report_html
+        assert "2:30 AM" in report_html
+        assert "UTC+08:00" not in report_html
         assert "7.25" in report_html
         assert "28.46 °C" in report_html
         assert analytics_api["total_readings"] == 1
