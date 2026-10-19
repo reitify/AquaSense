@@ -91,7 +91,9 @@ severity. Thresholds do not retroactively create alerts for readings already
 stored. pH, temperature, and temperature-change limits are entered in
 human-readable units and stored internally at ×100 to match the ESP32 payload.
 Validate thresholds against calibrated sensor specifications before operational
-use.
+use. The Alerts page also creates a low-severity informational entry for every
+normal reading and backfills readings already saved; readings with existing
+alerts are not duplicated.
 
 ## AI chat
 

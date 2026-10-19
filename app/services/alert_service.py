@@ -1,8 +1,10 @@
 
 from app.extensions import db
 from app.models.alert import Alert
+from app.models.reading import Reading
 from app.models.threshold_rule import ThresholdRule
 from app.services.assessment_service import determine_quality_status
+from sqlalchemy.exc import SQLAlchemyError
 
 
 THRESHOLD_PARAMETERS = {
@@ -47,6 +49,85 @@ RULE_STATUS_RANK = {
     "high": 2,
     "critical": 3,
 }
+READING_SEVERITIES = {
+    "Good": "low",
+    "Fair": "warning",
+    "Poor": "high",
+    "Critical": "critical",
+}
+
+
+def create_reading_notice(reading):
+    """Create an informational alert entry for a reading with no alert yet."""
+    if reading is None or reading.id is None:
+        raise ValueError("A saved reading is required.")
+
+    existing_alert = Alert.query.filter_by(reading_id=reading.id).first()
+    if existing_alert is not None:
+        return existing_alert
+
+    status = reading.quality_status or "Unknown"
+    alert = Alert(
+        river_id=reading.river_id,
+        reading_id=reading.id,
+        message=f"Reading #{reading.id} recorded. Assessment: {status}.",
+        status="open",
+        severity=READING_SEVERITIES.get(status, "low"),
+        created_at=reading.recorded_at,
+    )
+
+    try:
+        db.session.add(alert)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
+
+    return alert
+
+
+def backfill_reading_notices():
+    """Ensure every historical reading has at least one linked alert entry."""
+    readings = (
+        Reading.query
+        .filter(
+            ~Reading.id.in_(
+                db.session.query(Alert.reading_id)
+                .filter(Alert.reading_id.isnot(None))
+            )
+        )
+        .order_by(Reading.recorded_at.asc(), Reading.id.asc())
+        .all()
+    )
+    if not readings:
+        return 0
+
+    alerts = [
+        Alert(
+            river_id=reading.river_id,
+            reading_id=reading.id,
+            message=(
+                f"Reading #{reading.id} recorded. "
+                f"Assessment: {reading.quality_status or 'Unknown'}."
+            ),
+            status="open",
+            severity=READING_SEVERITIES.get(
+                reading.quality_status or "Unknown",
+                "low",
+            ),
+            created_at=reading.recorded_at,
+        )
+        for reading in readings
+    ]
+
+    try:
+        db.session.add_all(alerts)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
+
+    return len(alerts)
 
 
 def create_alert(reading, message=None):
@@ -126,14 +207,13 @@ def create_alert(reading, message=None):
         ))
 
     if not alerts:
-        return None
+        return create_reading_notice(reading)
 
     try:
         db.session.add_all(alerts)
         db.session.commit()
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         raise
 
     return alerts[0]
-

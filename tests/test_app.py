@@ -1106,7 +1106,84 @@ def test_admin_can_configure_threshold_and_new_reading_creates_alert():
         assert response.status_code == 201
         reading = Reading.query.order_by(Reading.id.desc()).first()
         assert reading.quality_status == "Fair"
-        assert Alert.query.filter_by(reading_id=reading.id).count() == 0
+        alert = Alert.query.filter_by(reading_id=reading.id).one()
+        assert alert.severity == "warning"
+        assert alert.message == f"Reading #{reading.id} recorded. Assessment: Fair."
+
+        response = client.post(
+            "/api/ingestion/reading",
+            json={
+                "device_id": "threshold-sensor",
+                "river_id": river_id,
+                "turbidity_ntu": 5,
+            },
+        )
+        assert response.status_code == 201
+        reading = Reading.query.order_by(Reading.id.desc()).first()
+        alert = Alert.query.filter_by(reading_id=reading.id).one()
+        assert reading.quality_status == "Good"
+        assert alert.severity == "low"
+        assert alert.message == f"Reading #{reading.id} recorded. Assessment: Good."
+
+
+def test_alerts_page_backfills_all_readings_once():
+    app = create_app()
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        user = User(
+            full_name="Alert Admin",
+            username="reading-alert-admin",
+            email="reading-alert-admin@example.com",
+            role="admin",
+        )
+        user.set_password("secret123")
+        river = River(name="Reading Test River", municipality="Norzagaray")
+        db.session.add_all([user, river])
+        db.session.commit()
+        readings = [
+            Reading(
+                river_id=river.id,
+                turbidity_ntu=5,
+                quality_status="Good",
+            ),
+            Reading(
+                river_id=river.id,
+                turbidity_ntu=12,
+                quality_status="Poor",
+            ),
+        ]
+        db.session.add_all(readings)
+        db.session.commit()
+        existing_alert = Alert(
+            river_id=river.id,
+            reading_id=readings[1].id,
+            message="Existing quality alert.",
+            severity="high",
+            status="open",
+        )
+        db.session.add(existing_alert)
+        db.session.commit()
+
+        app.config["WTF_CSRF_ENABLED"] = False
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+            session["_fresh"] = True
+
+        response = client.get("/alerts/")
+        assert response.status_code == 200
+        assert (
+            f"Reading #{readings[0].id} recorded. Assessment: Good."
+            in response.get_data(as_text=True)
+        )
+        assert Alert.query.filter_by(reading_id=readings[0].id).count() == 1
+        assert Alert.query.filter_by(reading_id=readings[1].id).count() == 1
+
+        repeated_response = client.get("/alerts/")
+        assert repeated_response.status_code == 200
+        assert Alert.query.count() == 2
 
 
 def test_non_admin_cannot_create_alert_threshold():

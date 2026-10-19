@@ -11,6 +11,7 @@ from app.extensions import db
 from app.models.alert import Alert
 from app.models.river import River
 from app.models.threshold_rule import ThresholdRule
+from app.services.alert_service import backfill_reading_notices
 from app.services.measurement_format_service import format_sensor_value
 
 alerts_bp = Blueprint("alerts", __name__, url_prefix="/alerts")
@@ -135,6 +136,8 @@ def _commit_threshold_change(success_message):
 @login_required
 def index():
     """Display water-quality alerts."""
+    backfill_reading_notices()
+
     selected_status = request.args.get("status", "all").lower()
     if selected_status not in {"all", "open", "monitoring", "resolved"}:
         selected_status = "all"
