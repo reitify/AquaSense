@@ -40,6 +40,19 @@ def test_create_app_registers_routes():
     assert response.status_code == 200
 
 
+def test_brand_logo_is_rendered_and_served():
+    client = create_app().test_client()
+
+    page_response = client.get("/")
+    assert page_response.status_code == 200
+    assert b"/static/images/logo.png" in page_response.data
+
+    logo_response = client.get("/static/images/logo.png")
+    assert logo_response.status_code == 200
+    assert logo_response.mimetype == "image/png"
+    assert logo_response.data.startswith(b"\x89PNG\r\n\x1a\n")
+
+
 def test_ingestion_health_checks_database_connection():
     app = create_app()
 
